@@ -2,6 +2,7 @@
     <img src="./media/logo_large.webp" alt="SpecForge Logo" width="200" height="200"/>
     <h1>🔨 SpecForge</h1>
     <h3><em>Build high-quality software faster.</em></h3>
+    <p><em>An enhanced fork of <a href="https://github.com/github/spec-kit">Spec Kit</a> with significant improvements</em></p>
 </div>
 
 <p align="center">
@@ -720,7 +721,17 @@ For support, please open a [GitHub issue](https://github.com/Censseo/specforge/i
 
 ## 🙏 Acknowledgements
 
-This project is heavily influenced by and based on the work and research of [John Lam](https://github.com/jflam).
+SpecForge is an enhanced fork of [GitHub's Spec Kit](https://github.com/github/spec-kit), originally created by [John Lam](https://github.com/jflam).
+
+This project builds upon the foundational work of Spec Kit with significant improvements:
+
+- Advanced quality analysis (dead code detection, spec deviation analysis)
+- Enhanced documentation workflows with `/docs/` integration
+- Modular setup architecture with `setup-xxx` commands
+- Granular context generation and cross-artifact analysis
+- Bootstrap and onboarding capabilities
+
+We're grateful to the Spec Kit team for the excellent foundation that made SpecForge possible.
 
 ## 📄 License
 
