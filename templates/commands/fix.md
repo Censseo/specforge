@@ -119,7 +119,7 @@ Run `{SCRIPT}` to get the list of unresolved bugs from validation:
 
 **If no bugs found AND no user input**:
 - Ask user what issue they want to fix
-- Or suggest running `/speckit.validate` first
+- Or suggest running `/specforge.validate` first
 
 ### Step 1.1: Load Feature Context
 
@@ -353,7 +353,7 @@ If all issues are implementation bugs:
 
 ### Path B: Spec Clarification Required
 If spec gaps exist:
-1. First: Run `/speckit.clarify` with identified gaps
+1. First: Run `/specforge.clarify` with identified gaps
 2. Then: Generate new tasks for clarified requirements
 3. Then: Execute all FIX tasks
 4. Finally: Re-validate
@@ -363,7 +363,7 @@ If wrong feature was built:
 1. Review original idea.md
 2. Decide: Salvage or restart?
 3. If salvage: Update spec with corrections
-4. If restart: Archive current, run `/speckit.specify` fresh
+4. If restart: Archive current, run `/specforge.specify` fresh
 
 **For This Feature**: Recommend **Path B**
 - 2 code fixes can proceed immediately
@@ -539,7 +539,7 @@ After completing all fixes:
 
 ### All Fixes Applied
 
-Ready for re-validation. Run `/speckit.validate` to confirm all issues are resolved.
+Ready for re-validation. Run `/specforge.validate` to confirm all issues are resolved.
 ```
 
 ### Step 6.4: Update Bug Status
@@ -653,7 +653,7 @@ Total bugs: 3
 
 ### Next Step
 
-> **Run `/speckit.validate` to confirm all issues are resolved.**
+> **Run `/specforge.validate` to confirm all issues are resolved.**
 
 All identified issues have been fixed. Re-run validation to verify the fixes work correctly in integration.
 ```
@@ -667,7 +667,7 @@ All identified issues have been fixed. Re-run validation to verify the fixes wor
 If user provides specific file/line:
 
 ```text
-/speckit.fix api/auth.py:52 returns 500 instead of 401
+/specforge.fix api/auth.py:52 returns 500 instead of 401
 ```
 
 Execute targeted fix immediately:
@@ -691,7 +691,7 @@ Execute targeted fix immediately:
 
 **Verification**: Local test shows 401 response with message
 
-→ Run `/speckit.validate` to confirm in integration
+→ Run `/specforge.validate` to confirm in integration
 ```
 
 ---
@@ -700,9 +700,9 @@ Execute targeted fix immediately:
 
 | Scenario | What This Command Does | Then |
 |----------|------------------------|------|
-| Code bug from validation | **Fix the bug directly** | `/speckit.validate` to verify |
-| Spec gap discovered | Make assumption and implement, OR ask user | `/speckit.validate` to verify |
-| Multiple issues | Fix all issues in dependency order | `/speckit.validate` to verify |
+| Code bug from validation | **Fix the bug directly** | `/specforge.validate` to verify |
+| Spec gap discovered | Make assumption and implement, OR ask user | `/specforge.validate` to verify |
+| Multiple issues | Fix all issues in dependency order | `/specforge.validate` to verify |
 | Need more evidence | Run quick tests to understand issue | Fix once understood |
 
 **Note**: This command should complete with fixes applied, not with a plan for future work.

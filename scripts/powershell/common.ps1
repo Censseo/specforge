@@ -16,9 +16,9 @@ function Get-RepoRoot {
 }
 
 function Get-CurrentBranch {
-    # First check if SPECIFY_FEATURE environment variable is set
-    if ($env:SPECIFY_FEATURE) {
-        return $env:SPECIFY_FEATURE
+    # First check if SPECFORGE_FEATURE environment variable is set
+    if ($env:SPECFORGE_FEATURE) {
+        return $env:SPECFORGE_FEATURE
     }
     
     # Then check git if available

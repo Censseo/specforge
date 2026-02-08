@@ -365,7 +365,7 @@ node .mcp/project-server/dist/index.js --test
 ### Next Steps
 
 1. Restart __AGENT_NAME__ to load the MCP server
-2. Use `/speckit.validate` to run integration tests
+2. Use `/specforge.validate` to run integration tests
 3. Or use tools directly: `start_service backend`
 
 ### Files Created

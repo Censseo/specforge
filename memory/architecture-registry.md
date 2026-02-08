@@ -11,10 +11,10 @@ New features MUST follow established patterns unless explicitly diverging with d
 
 ## How This Registry Works
 
-1. **During Planning** (`/speckit.plan`): Load this registry and verify new design aligns
-2. **During Implementation** (`/speckit.implement`): Module-specific CLAUDE.md files are auto-loaded by Claude Code
-3. **After Merge** (`/speckit.merge` + `/speckit.learn`): Update registry with new patterns, update module CLAUDE.md files
-4. **Quality Gate** (`/speckit.checklist`): Validates plan alignment with registry patterns
+1. **During Planning** (`/specforge.plan`): Load this registry and verify new design aligns
+2. **During Implementation** (`/specforge.implement`): Module-specific CLAUDE.md files are auto-loaded by Claude Code
+3. **After Merge** (`/specforge.merge` + `/specforge.learn`): Update registry with new patterns, update module CLAUDE.md files
+4. **Quality Gate** (`/specforge.checklist`): Validates plan alignment with registry patterns
 
 ---
 
@@ -157,7 +157,7 @@ These belong in `{module}/CLAUDE.md` instead:
 
 ### Update Process
 
-1. Run `/speckit.learn` after `/speckit.merge`
+1. Run `/specforge.learn` after `/specforge.merge`
 2. Review proposed changes
 3. Keep only high-level patterns in this file
 4. Module-specific details go to respective CLAUDE.md files

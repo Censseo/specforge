@@ -138,7 +138,7 @@ This phase runs **ONLY** after user confirms which phase to process.
 
    ## CRITICAL: Validate Reuse Decisions
 
-   The plan made reuse decisions during /speckit.plan. Your job is to VALIDATE these are still accurate:
+   The plan made reuse decisions during /specforge.plan. Your job is to VALIDATE these are still accurate:
 
    ### For each [REUSE] task:
    - VERIFY the component still exists at the specified location
@@ -491,7 +491,7 @@ This phase plans tasks **by logical groups** for efficiency (fewer agent calls, 
     ## Next Steps
 
     1. Review task plans in task-plans/ directory
-    2. Run /speckit.implement to execute implementation
+    2. Run /specforge.implement to execute implementation
     3. Plans will guide implementation with exact steps and references
 
     ## Key Patterns Discovered
@@ -567,7 +567,7 @@ The secondary goal is to **reduce uncertainty** between the technical plan and a
 
 ## Error Handling
 
-- **No tasks.md**: Error and suggest running `/speckit.tasks` first
+- **No tasks.md**: Error and suggest running `/specforge.tasks` first
 - **No incomplete tasks**: Inform user all tasks are already planned
 - **Agent failure**: Log error, skip group, continue with next group
 - **Parse failure**: If ---TASK_SEPARATOR--- parsing fails, attempt to extract plans by # Task Plan: headers

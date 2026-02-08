@@ -2,10 +2,47 @@
 
 <!-- markdownlint-disable MD024 -->
 
-All notable changes to the Specify CLI and templates are documented here.
+All notable changes to the Forge CLI and templates are documented here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.1.0] - 2026-02-08
+
+### BREAKING CHANGE - Project Rebranding
+
+**Spec Kit → SpecForge** 🔨
+
+This project has evolved significantly beyond its original fork and is now **SpecForge** - an enhanced toolkit for Spec-Driven Development.
+
+#### What's Changed
+
+- **CLI renamed**: `specify` → `forge`
+- **Package renamed**: `specify-cli` → `forge-cli`
+- **Commands renamed**: `/speckit.*` → `/specforge.*`
+- **Source directory**: `specify_cli` → `forge_cli`
+- **Environment variables**: `SPECIFY_FEATURE` → `SPECFORGE_FEATURE`
+- **Repository**: No longer a fork, independent project
+
+#### New Capabilities
+
+This rebranding reflects major improvements over the original Spec Kit:
+
+- **Advanced quality analysis**: Dead code detection, fake implementation detection, spec deviation analysis in `/specforge.review`
+- **Enhanced documentation**: `/docs/` as primary data source, OpenSpec-style domain organization
+- **Modular workflows**: Refactored setup commands with `setup-xxx` namespace
+- **Intelligent learning**: Granular context generation with `/specforge.learn`
+- **Better analysis**: Cross-artifact consistency checking with `/specforge.analyze`
+- **Bootstrap support**: New `/specforge.bootstrap` for project onboarding
+
+#### Migration Guide
+
+If upgrading from Spec Kit:
+
+1. Uninstall old CLI: `uv tool uninstall specify-cli`
+2. Install SpecForge: `uv tool install forge-cli --from git+https://github.com/Censseo/specforge.git`
+3. Update slash commands in your workflows from `/speckit.*` to `/specforge.*`
+4. Update any scripts/automation using `SPECIFY_FEATURE` to `SPECFORGE_FEATURE`
 
 ## [0.0.22] - 2025-11-07
 
@@ -51,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Support for CodeBuddy (thank you to [@lispking](https://github.com/lispking) for the contribution).
-- You can now see Git-sourced errors in the Specify CLI.
+- You can now see Git-sourced errors in the Forge CLI.
 
 ### Changed
 

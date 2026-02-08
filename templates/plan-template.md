@@ -3,7 +3,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/specforge.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
@@ -39,12 +39,12 @@
 
 ```text
 specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── plan.md              # This file (/specforge.plan command output)
+├── research.md          # Phase 0 output (/specforge.plan command)
+├── data-model.md        # Phase 1 output (/specforge.plan command)
+├── quickstart.md        # Phase 1 output (/specforge.plan command)
+├── contracts/           # Phase 1 output (/specforge.plan command)
+└── tasks.md             # Phase 2 output (/specforge.tasks command - NOT created by /specforge.plan)
 ```
 
 ### Source Code (repository root)
@@ -109,10 +109,10 @@ directories captured above]
 
 **Phase Status**:
 
-- [ ] Phase 0: Research complete (/speckit.plan command)
-- [ ] Phase 1: Design complete (/speckit.plan command)
-- [ ] Phase 2: Task planning complete (/speckit.plan command - describe approach only)
-- [ ] Phase 3: Tasks generated (/speckit.tasks command)
+- [ ] Phase 0: Research complete (/specforge.plan command)
+- [ ] Phase 1: Design complete (/specforge.plan command)
+- [ ] Phase 2: Task planning complete (/specforge.plan command - describe approach only)
+- [ ] Phase 3: Tasks generated (/specforge.tasks command)
 - [ ] Phase 4: Implementation complete
 - [ ] Phase 5: Validation passed
 

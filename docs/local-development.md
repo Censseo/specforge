@@ -7,8 +7,8 @@ This guide shows how to iterate on the `specify` CLI locally without publishing 
 ## 1. Clone and Switch Branches
 
 ```bash
-git clone https://github.com/github/spec-kit.git
-cd spec-kit
+git clone https://github.com/github/specforge.git
+cd specforge
 # Work on a feature branch
 git checkout -b your-feature-branch
 ```
@@ -52,7 +52,7 @@ Re-running after code edits requires no reinstall because of editable mode.
 `uvx` can run from a local path (or a Git ref) to simulate user flows:
 
 ```bash
-uvx --from . specify init demo-uvx --ai copilot --ignore-agent-tools --script sh
+uvx --from . forge init demo-uvx --ai copilot --ignore-agent-tools --script sh
 ```
 
 You can also point uvx at a specific branch without merging:
@@ -60,7 +60,7 @@ You can also point uvx at a specific branch without merging:
 ```bash
 # Push your working branch first
 git push origin your-feature-branch
-uvx --from git+https://github.com/github/spec-kit.git@your-feature-branch specify init demo-branch-test --script ps
+uvx --from git+https://github.com/github/specforge.git@your-feature-branch forge init demo-branch-test --script ps
 ```
 
 ### 4a. Absolute Path uvx (Run From Anywhere)
@@ -68,21 +68,21 @@ uvx --from git+https://github.com/github/spec-kit.git@your-feature-branch specif
 If you're in another directory, use an absolute path instead of `.`:
 
 ```bash
-uvx --from /mnt/c/GitHub/spec-kit specify --help
-uvx --from /mnt/c/GitHub/spec-kit specify init demo-anywhere --ai copilot --ignore-agent-tools --script sh
+uvx --from /mnt/c/GitHub/specforge specify --help
+uvx --from /mnt/c/GitHub/specforge forge init demo-anywhere --ai copilot --ignore-agent-tools --script sh
 ```
 
 Set an environment variable for convenience:
 
 ```bash
-export SPEC_KIT_SRC=/mnt/c/GitHub/spec-kit
-uvx --from "$SPEC_KIT_SRC" specify init demo-env --ai copilot --ignore-agent-tools --script ps
+export SPEC_KIT_SRC=/mnt/c/GitHub/specforge
+uvx --from "$SPEC_KIT_SRC" forge init demo-env --ai copilot --ignore-agent-tools --script ps
 ```
 
 (Optional) Define a shell function:
 
 ```bash
-specify-dev() { uvx --from /mnt/c/GitHub/spec-kit specify "$@"; }
+specify-dev() { uvx --from /mnt/c/GitHub/specforge specify "$@"; }
 # Then
 specify-dev --help
 ```
@@ -134,7 +134,7 @@ If you need to bypass TLS validation while experimenting:
 
 ```bash
 specify check --skip-tls
-specify init demo --skip-tls --ai gemini --ignore-agent-tools --script ps
+forge init demo --skip-tls --ai gemini --ignore-agent-tools --script ps
 ```
 
 (Use only for local experimentation.)
@@ -146,7 +146,7 @@ specify init demo --skip-tls --ai gemini --ignore-agent-tools --script ps
 | Run CLI directly | `python -m src.specify_cli --help` |
 | Editable install | `uv pip install -e .` then `specify ...` |
 | Local uvx run (repo root) | `uvx --from . specify ...` |
-| Local uvx run (abs path) | `uvx --from /mnt/c/GitHub/spec-kit specify ...` |
+| Local uvx run (abs path) | `uvx --from /mnt/c/GitHub/specforge specify ...` |
 | Git branch uvx | `uvx --from git+URL@branch specify ...` |
 | Build wheel | `uv build` |
 

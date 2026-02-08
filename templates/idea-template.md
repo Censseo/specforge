@@ -259,7 +259,7 @@
 
 <!--
   What needs to be answered before or during specification?
-  These will inform /speckit.specify and /speckit.clarify.
+  These will inform /specforge.specify and /specforge.clarify.
 -->
 
 - [Question that needs answering]
@@ -301,7 +301,7 @@
 
   Everything documented here will be:
   1. Carried forward to spec.md as "Technical Hints (For Planning)"
-  2. Validated during /speckit.plan for alignment
+  2. Validated during /specforge.plan for alignment
   3. Traced to specific tasks in tasks.md
   4. Verified before implementation begins
 -->

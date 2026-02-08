@@ -41,7 +41,7 @@ Consider user input for scope (specific user story, full validation, quick smoke
 
 This command requires:
 
-1. **MCP Server configured** - Run `/speckit.mcp` first if not done
+1. **MCP Server configured** - Run `/specforge.mcp` first if not done
 2. **Specification with acceptance scenarios** - `spec.md` with User Stories
 3. **Implementation complete** - Tasks marked as done in `tasks.md`
 
@@ -579,7 +579,7 @@ validation/
 
 **CRITICAL**: For each failure or issue found, create an individual bug report file in `FEATURE_DIR/validation/bugs/`.
 
-This directory is the SOURCE OF TRUTH for the `/speckit.fix` command. Each bug gets its own file.
+This directory is the SOURCE OF TRUTH for the `/specforge.fix` command. Each bug gets its own file.
 
 #### Bug File Format
 
@@ -679,7 +679,7 @@ validation/
 
 ### Step 4.4: Create Correction Tasks
 
-If failures found, update `tasks.md` with correction tasks (using smart insertion from `/speckit.review`):
+If failures found, update `tasks.md` with correction tasks (using smart insertion from `/specforge.review`):
 
 ```markdown
 ### 🔧 Validation Corrections (Added {date})
@@ -757,11 +757,11 @@ Present to user with CLEAR status indication:
 
 - `validation/report-{date}.md` - Full report with all details
 - `validation/screenshots/` - Evidence for failures
-- `validation/bugs/` - Individual bug reports (used by `/speckit.fix`)
+- `validation/bugs/` - Individual bug reports (used by `/specforge.fix`)
 
 ### Bug Reports Created
 
-> These bug files are the input for `/speckit.fix`. Run fix without arguments to process all open bugs.
+> These bug files are the input for `/specforge.fix`. Run fix without arguments to process all open bugs.
 
 **Scenario Failures**:
 | Bug ID | Severity | User Story | Issue |
@@ -787,15 +787,15 @@ Present to user with CLEAR status indication:
 {Based on status:}
 
 **If FAILED or INCOMPLETE**:
-> The feature is NOT ready. Run `/speckit.fix` to diagnose and fix the issues.
+> The feature is NOT ready. Run `/specforge.fix` to diagnose and fix the issues.
 
 **If PASSED**:
 > The feature is ready for release.
 
 ### Next Steps
 
-- [Diagnose & Fix] → `/speckit.fix` to analyze and fix issues
-- [Re-validate] → `/speckit.validate` after fixes
+- [Diagnose & Fix] → `/specforge.fix` to analyze and fix issues
+- [Re-validate] → `/specforge.validate` after fixes
 - [Review Report] → Open `validation/report-{date}.md`
 ```
 
@@ -819,7 +819,7 @@ while ! curl -s http://localhost:8080/health > /dev/null; do sleep 1; done
 curl -X POST http://localhost:8080/api/auth/login -d '{"email":"test@example.com"}'
 
 # For browser tests, recommend installing MCP
-echo "For browser automation, run /speckit.mcp first"
+echo "For browser automation, run /specforge.mcp first"
 ```
 
-Recommend running `/speckit.mcp` for full automation capabilities.
+Recommend running `/specforge.mcp` for full automation capabilities.

@@ -81,5 +81,5 @@ description: {Framework} best practices and patterns for this project
 ### Next Steps
 - Review generated skills
 - Add project-specific conventions
-- Run /speckit.setup-agents to use skills in agents
+- Run /specforge.setup-agents to use skills in agents
 ```

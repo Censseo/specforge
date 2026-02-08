@@ -1,7 +1,7 @@
 [project]
-name = "specify-cli"
+name = "forge-cli"
 version = "0.0.25"
-description = "Specify CLI, part of GitHub Spec Kit. A tool to bootstrap your projects for Spec-Driven Development (SDD)."
+description = "SpecForge CLI - An enhanced toolkit for Spec-Driven Development with advanced quality analysis, modular workflows, and intelligent code generation."
 requires-python = ">=3.11"
 dependencies = [
     "typer",
@@ -13,20 +13,20 @@ dependencies = [
 ]
 
 [project.scripts]
-specify = "specify_cli:main"
+forge = "forge_cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/specify_cli"]
+packages = ["src/forge_cli"]
 
 # Include bundled templates and scripts in the package
 [tool.hatch.build.targets.wheel.force-include]
-"templates" = "specify_cli/bundled/templates"
-"scripts" = "specify_cli/bundled/scripts"
-"memory" = "specify_cli/bundled/memory"
+"templates" = "forge_cli/bundled/templates"
+"scripts" = "forge_cli/bundled/scripts"
+"memory" = "forge_cli/bundled/memory"
 
 [tool.hatch.build.targets.sdist]
 include = [

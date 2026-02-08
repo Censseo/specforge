@@ -1,5 +1,5 @@
 ---
-description: Transform a raw idea into a structured vision document and decompose complex ideas into manageable features. Use this BEFORE /speckit.specify to enrich context and reduce ambiguity.
+description: Transform a raw idea into a structured vision document and decompose complex ideas into manageable features. Use this BEFORE /specforge.specify to enrich context and reduce ambiguity.
 semantic_anchors:
   - Double Diamond        # Discover → Define → Develop → Deliver, divergent/convergent thinking
   - Jobs-to-Be-Done       # Outcome-focused: situation → motivation → outcome
@@ -31,7 +31,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 > **Activated Frameworks**: Double Diamond for discovery (diverge then converge), Jobs-to-Be-Done for user outcomes, User Story Mapping for feature decomposition, Cynefin for complexity assessment.
 
-The `/speckit.idea` command transforms a raw, often vague idea into a comprehensive vision document AND decomposes complex ideas into smaller, manageable features. This is the **Discover** phase of Double Diamond - divergent exploration before convergent specification.
+The `/specforge.idea` command transforms a raw, often vague idea into a comprehensive vision document AND decomposes complex ideas into smaller, manageable features. This is the **Discover** phase of Double Diamond - divergent exploration before convergent specification.
 
 **Workflow position**: `idea` → `specify` (per feature) → `clarify` → `plan` → `tasks` → `implement`
 
@@ -39,7 +39,7 @@ The `/speckit.idea` command transforms a raw, often vague idea into a comprehens
 
 ## Outline
 
-The text the user typed after `/speckit.idea` is the raw idea. Your goal is to:
+The text the user typed after `/specforge.idea` is the raw idea. Your goal is to:
 1. Enrich it through structured exploration
 2. Assess complexity and identify natural boundaries
 3. Decompose into features if complexity warrants it
@@ -183,7 +183,7 @@ ideas/###-<short-name>/
     ├── 02-<feature-name>.md   # Second feature
     └── ...
 
-.speckit/                              # Created later by /speckit.specify
+.speckit/                              # Created later by /specforge.specify
 ├── ###-<short-name>/                  # Spec for simple idea (complexity < 4)
 │   ├── spec.md
 │   ├── plan.md
@@ -194,7 +194,7 @@ ideas/###-<short-name>/
     └── ...
 ```
 
-**Note**: The `/speckit.specify` command will create the `.speckit/###-<name>/` directory structure when you specify the idea or each feature.
+**Note**: The `/specforge.specify` command will create the `.speckit/###-<name>/` directory structure when you specify the idea or each feature.
 
 #### 3.2 Write Idea Document
 
@@ -487,7 +487,7 @@ Before completing, verify:
    - **Open questions**: [count]
 
    ### Next Step
-   → `/speckit.specify ideas/###-<short-name>` to create formal specification
+   → `/specforge.specify ideas/###-<short-name>` to create formal specification
    ```
 
    **For complex ideas (complexity ≥ 4)**:
@@ -515,13 +515,13 @@ Before completing, verify:
    3. **Later**: Feature 03 - [name]
 
    ### Next Step
-   → `/speckit.specify ideas/###-<short-name>/features/01-feature-name.md` to specify first feature
-   → Or `/speckit.specify ideas/###-<short-name>` to specify entire idea as one spec
+   → `/specforge.specify ideas/###-<short-name>/features/01-feature-name.md` to specify first feature
+   → Or `/specforge.specify ideas/###-<short-name>` to specify entire idea as one spec
    ```
 
 3. **Handoff options**:
-   - **Specify next feature**: `/speckit.specify` with feature number or path
-   - **Refine idea further**: `/speckit.idea` to add more features or details
+   - **Specify next feature**: `/specforge.specify` with feature number or path
+   - **Refine idea further**: `/specforge.idea` to add more features or details
    - **Review manually**: Edit the idea or feature documents directly
 
 ## Guidelines
@@ -539,7 +539,7 @@ Before completing, verify:
 - **Don't ask too many questions**: 5-7 max, stop if you have enough
 - **Don't require perfect answers**: Rough is fine, can refine later
 - **Don't include implementation details**: No tech stack, architecture, code
-- **Don't create the spec**: That's `/speckit.specify`'s job
+- **Don't create the spec**: That's `/specforge.specify`'s job
 - **Don't skip the MVP definition**: This is critical for scope control
 - **Don't create monolithic features**: If scope is large, decompose it
 - **Don't force decomposition**: Simple ideas don't need feature files

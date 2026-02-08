@@ -32,7 +32,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-The text the user typed after `/speckit.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The text the user typed after `/specforge.specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
 
 ### Step 0: Detect Input Type and Load Context
 
@@ -100,7 +100,7 @@ ELSE:
 1. Use the plain text as the feature description
 2. Check if an idea.md exists in the target directory:
    - If found, load it for additional context
-   - Suggest `/speckit.idea` first if description is very vague (< 20 words)
+   - Suggest `/specforge.idea` first if description is very vague (< 20 words)
 
 #### 0.3 Load Existing Documentation for Consistency (CRITICAL)
 
@@ -262,7 +262,7 @@ Given that feature description (or idea document), do this:
    ## Technical Hints (For Planning)
 
    > **Note**: This section preserves technical guidance from the source idea.
-   > It is NOT part of the functional specification but MUST be considered during `/speckit.plan`.
+   > It is NOT part of the functional specification but MUST be considered during `/specforge.plan`.
 
    ### Source
 
@@ -323,7 +323,7 @@ Given that feature description (or idea document), do this:
       
       ## Notes
       
-      - Items marked incomplete require spec updates before `/speckit.clarify` or `/speckit.plan`
+      - Items marked incomplete require spec updates before `/specforge.clarify` or `/specforge.plan`
       ```
 
    b. **Run Validation Check**: Review the spec against each checklist item:
@@ -377,7 +377,7 @@ Given that feature description (or idea document), do this:
 
    d. **Update Checklist**: After each validation iteration, update the checklist file with current pass/fail status
 
-7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/speckit.clarify` or `/speckit.plan`).
+7. Report completion with branch name, spec file path, checklist results, and readiness for the next phase (`/specforge.clarify` or `/specforge.plan`).
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 

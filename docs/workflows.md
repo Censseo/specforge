@@ -1,6 +1,6 @@
-# Spec Kit Workflows
+# SpecForge Workflows
 
-This guide describes the different workflows available in Spec Kit and when to use each one.
+This guide describes the different workflows available in SpecForge and when to use each one.
 
 ## Workflow Selection Guide
 
@@ -48,7 +48,7 @@ The complete Spec-Driven Development workflow for building new features from scr
 
 ### Phase 1: Exploration (Optional)
 
-**Command**: `/speckit.idea`
+**Command**: `/specforge.idea`
 
 **Purpose**: Transform a raw, vague idea into a structured vision document. Decompose complex ideas into manageable features.
 
@@ -67,7 +67,7 @@ The complete Spec-Driven Development workflow for building new features from scr
 
 ### Phase 2: Specification
 
-**Command**: `/speckit.specify`
+**Command**: `/specforge.specify`
 
 **Purpose**: Create a formal specification document with user stories, functional requirements, and acceptance scenarios.
 
@@ -91,7 +91,7 @@ The complete Spec-Driven Development workflow for building new features from scr
 
 ### Phase 3: Clarification
 
-**Command**: `/speckit.clarify`
+**Command**: `/specforge.clarify`
 
 **Purpose**: Reduce ambiguity through structured questioning. Maximum 5 targeted questions.
 
@@ -116,7 +116,7 @@ The complete Spec-Driven Development workflow for building new features from scr
 
 ### Phase 4: Technical Planning
 
-**Command**: `/speckit.plan`
+**Command**: `/specforge.plan`
 
 **Purpose**: Create technical implementation plan with architecture decisions, data models, and API contracts.
 
@@ -145,7 +145,7 @@ The complete Spec-Driven Development workflow for building new features from scr
 
 ### Phase 5: Task Generation
 
-**Command**: `/speckit.tasks`
+**Command**: `/specforge.tasks`
 
 **Purpose**: Generate actionable, dependency-ordered task list organized by user story.
 
@@ -178,7 +178,7 @@ Final: Polish & cross-cutting
 
 ### Phase 6: Implementation
 
-**Command**: `/speckit.implement`
+**Command**: `/specforge.implement`
 
 **Purpose**: Execute all tasks to build the feature according to the plan.
 
@@ -205,7 +205,7 @@ Final: Polish & cross-cutting
 
 ### Phase 7: Validation
 
-**Command**: `/speckit.validate`
+**Command**: `/specforge.validate`
 
 **Purpose**: Run integration tests by executing BDD acceptance scenarios.
 
@@ -231,7 +231,7 @@ Final: Polish & cross-cutting
 
 ### Phase 8: Fix (If Needed)
 
-**Command**: `/speckit.fix`
+**Command**: `/specforge.fix`
 
 **Purpose**: Diagnose and fix bugs found during validation.
 
@@ -258,7 +258,7 @@ For small, focused modifications without the full workflow overhead.
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
 │                                                                                 │
-│                              /speckit.change                                    │
+│                              /specforge.change                                    │
 │                                    │                                            │
 │                            ┌───────┴───────┐                                    │
 │                            │    Triage     │                                    │
@@ -283,7 +283,7 @@ For small, focused modifications without the full workflow overhead.
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### When to Use `/speckit.change`
+### When to Use `/specforge.change`
 
 **Use for:**
 - Bug fixes (code doesn't match spec)
@@ -318,16 +318,16 @@ For small, focused modifications without the full workflow overhead.
 
 ```bash
 # Bug fix
-/speckit.change The login button doesn't work on mobile
+/specforge.change The login button doesn't work on mobile
 
 # Spec tweak
-/speckit.change Add requirement: email must be validated with RFC 5322 format
+/specforge.change Add requirement: email must be validated with RFC 5322 format
 
 # User feedback
-/speckit.change Users are confused by the Submit button - they don't know what happens next
+/specforge.change Users are confused by the Submit button - they don't know what happens next
 
 # Refinement
-/speckit.change Improve error messages in the payment flow to be more user-friendly
+/specforge.change Improve error messages in the payment flow to be more user-friendly
 ```
 
 ---
@@ -348,18 +348,18 @@ For small, focused modifications without the full workflow overhead.
                               + sub-module context
 ```
 
-**`/speckit.analyze`** - Cross-artifact consistency
-- Run after `/speckit.tasks`, before `/speckit.implement`
+**`/specforge.analyze`** - Cross-artifact consistency
+- Run after `/specforge.tasks`, before `/specforge.implement`
 - Detects gaps, duplications, ambiguities
 - Validates constitution alignment
 
-**`/speckit.review`** - Code quality analysis
+**`/specforge.review`** - Code quality analysis
 - Code smell detection (Martin Fowler catalog)
 - Security vulnerabilities (OWASP Top 10)
 - Technical debt classification
 - Generates improvement tasks
 
-**`/speckit.learn`** - Pattern discovery and documentation
+**`/specforge.learn`** - Pattern discovery and documentation
 - Analyze existing codebase and all feature specifications
 - Update architecture registry (HIGH LEVEL patterns only)
 - Generate/update `specs/__AGENT_CONTEXT_FILE__` (project state: vocabulary, entities, contracts, invariants)
@@ -379,17 +379,17 @@ For small, focused modifications without the full workflow overhead.
                  + main       files updated
 ```
 
-**`/speckit.merge`** - Feature completion and documentation
+**`/specforge.merge`** - Feature completion and documentation
 - Verify all tasks completed
 - Merge feature branch to main
 - Consolidate specs to `/docs/{domain}/spec.md` (OpenSpec-style, by domain)
-- Optionally run `/speckit.learn` to update patterns
+- Optionally run `/specforge.learn` to update patterns
 - `/docs/{domain}/` becomes source of truth for future specify/plan
 
 ### Checklist Workflow
 
 ```
-/speckit.checklist [domain]
+/specforge.checklist [domain]
         │
         ├── Generate mode (default)
         │   └── Creates domain-specific checklist
@@ -406,22 +406,22 @@ For small, focused modifications without the full workflow overhead.
 
 | Phase | Command | Input | Output |
 |-------|---------|-------|--------|
-| **Setup** | `/speckit.setup` | - | Full setup (orchestrator) |
-| | `/speckit.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
-| | `/speckit.setup-agents` | - | agents + skills + MCP |
-| Explore | `/speckit.idea` | Raw idea | idea.md, features/ |
-| Specify | `/speckit.specify` | Description | spec.md |
-| Clarify | `/speckit.clarify` | - | Updated spec.md |
-| Plan | `/speckit.plan` | Tech stack | plan.md, research.md, data-model.md, contracts/ |
-| Tasks | `/speckit.tasks` | - | tasks.md |
-| Implement | `/speckit.implement` | - | Code, task-results/ |
-| **Merge** | `/speckit.merge` | - | /docs/{domain}/spec.md updated |
-| **Learn** | `/speckit.learn` | - | architecture-registry, specs context, module + sub-module context |
-| Validate | `/speckit.validate` | - | validation/, bugs/ |
-| Fix | `/speckit.fix` | Bug ID | Fixed code |
-| Change | `/speckit.change` | Description | Updated code/spec |
-| Analyze | `/speckit.analyze` | - | Coverage report |
-| Review | `/speckit.review` | Scope | Tech debt report |
+| **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
+| | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
+| | `/specforge.setup-agents` | - | agents + skills + MCP |
+| Explore | `/specforge.idea` | Raw idea | idea.md, features/ |
+| Specify | `/specforge.specify` | Description | spec.md |
+| Clarify | `/specforge.clarify` | - | Updated spec.md |
+| Plan | `/specforge.plan` | Tech stack | plan.md, research.md, data-model.md, contracts/ |
+| Tasks | `/specforge.tasks` | - | tasks.md |
+| Implement | `/specforge.implement` | - | Code, task-results/ |
+| **Merge** | `/specforge.merge` | - | /docs/{domain}/spec.md updated |
+| **Learn** | `/specforge.learn` | - | architecture-registry, specs context, module + sub-module context |
+| Validate | `/specforge.validate` | - | validation/, bugs/ |
+| Fix | `/specforge.fix` | Bug ID | Fixed code |
+| Change | `/specforge.change` | Description | Updated code/spec |
+| Analyze | `/specforge.analyze` | - | Coverage report |
+| Review | `/specforge.review` | Scope | Tech debt report |
 
 ---
 
@@ -436,7 +436,7 @@ For small, focused modifications without the full workflow overhead.
 
 ### For Changes
 
-1. **Use `/speckit.change` for small modifications** - Don't over-engineer
+1. **Use `/specforge.change` for small modifications** - Don't over-engineer
 2. **Respect scope limits** - Escalate if > 3 files affected
 3. **Maintain traceability** - Update tasks.md and spec.md
 4. **Verify after fixing** - Run quick sanity check

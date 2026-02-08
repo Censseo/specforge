@@ -1,6 +1,6 @@
 # Semantic Anchors Reference
 
-> **Purpose**: This file defines the semantic anchors used across spec-kit commands.
+> **Purpose**: This file defines the semantic anchors used across specforge commands.
 > These anchors are well-established terms that activate rich contextual understanding in LLMs.
 
 ## How to Use

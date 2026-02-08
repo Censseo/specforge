@@ -10,18 +10,18 @@
 # ]
 # ///
 """
-Specify CLI - Setup tool for Specify projects
+Forge CLI - Setup tool for SpecForge projects
 
 Usage:
-    uvx specify-cli.py init <project-name>
-    uvx specify-cli.py init .
-    uvx specify-cli.py init --here
+    uvx forge-cli.py init <project-name>
+    uvx forge-cli.py init .
+    uvx forge-cli.py init --here
 
 Or install globally:
-    uv tool install --from specify-cli.py specify-cli
-    specify init <project-name>
-    specify init .
-    specify init --here
+    uv tool install --from forge-cli.py forge-cli
+    forge init <project-name>
+    forge init .
+    forge init --here
 """
 
 import os
@@ -480,12 +480,12 @@ def build_template_from_bundled(
                 # Escape backslashes for TOML
                 content = content.replace("\\", "\\\\")
                 output_content = f'description = "{description}"\n\nprompt = """\n{content}\n"""\n'
-                output_file = output_dir / f"speckit.{name}.toml"
+                output_file = output_dir / f"specforge.{name}.toml"
             elif file_ext == "agent.md":
-                output_file = output_dir / f"speckit.{name}.agent.md"
+                output_file = output_dir / f"specforge.{name}.agent.md"
                 output_content = content
             else:
-                output_file = output_dir / f"speckit.{name}.md"
+                output_file = output_dir / f"specforge.{name}.md"
                 output_content = content
 
             output_file.write_text(output_content, encoding="utf-8")
@@ -494,7 +494,7 @@ def build_template_from_bundled(
         if ai_assistant == "copilot":
             prompts_dir = target_dir / ".github" / "prompts"
             prompts_dir.mkdir(parents=True, exist_ok=True)
-            for agent_file in output_dir.glob("speckit.*.agent.md"):
+            for agent_file in output_dir.glob("specforge.*.agent.md"):
                 basename = agent_file.stem.replace(".agent", "")
                 prompt_file = prompts_dir / f"{basename}.prompt.md"
                 prompt_file.write_text(f"---\nagent: {basename}\n---\n", encoding="utf-8")
@@ -537,7 +537,7 @@ BANNER = """
 ╚══════╝╚═╝     ╚══════╝ ╚═════╝╚═╝╚═╝        ╚═╝   
 """
 
-TAGLINE = "GitHub Spec Kit - Spec-Driven Development Toolkit"
+TAGLINE = "SpecForge - Spec-Driven Development Toolkit"
 class StepTracker:
     """Track and render hierarchical steps without emojis, similar to Claude Code tree output.
     Supports live auto-refresh via an attached refresh callback.
@@ -730,8 +730,8 @@ class BannerGroup(TyperGroup):
 
 
 app = typer.Typer(
-    name="specify",
-    help="Setup tool for Specify spec-driven development projects",
+    name="forge",
+    help="Setup tool for SpecForge spec-driven development projects",
     add_completion=False,
     invoke_without_command=True,
     cls=BannerGroup,
@@ -788,7 +788,7 @@ def check_tool(tool: str, tracker: StepTracker = None) -> bool:
         True if tool is found, False otherwise
     """
     # Special handling for Claude CLI after `claude migrate-installer`
-    # See: https://github.com/github/spec-kit/issues/123
+    # See: https://github.com/github/specforge/issues/123
     # The migrate-installer command REMOVES the original executable from PATH
     # and creates an alias at ~/.claude/local/claude instead
     # This path should be prioritized over other claude executables in PATH
@@ -931,8 +931,8 @@ def merge_json_files(existing_path: Path, new_content: dict, verbose: bool = Fal
     return merged
 
 def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
-    repo_owner = "github"
-    repo_name = "spec-kit"
+    repo_owner = "Censseo"
+    repo_name = "specforge"
     if client is None:
         client = httpx.Client(verify=ssl_context)
 
@@ -964,7 +964,7 @@ def download_template_from_github(ai_assistant: str, download_dir: Path, *, scri
         raise typer.Exit(1)
 
     assets = release_data.get("assets", [])
-    pattern = f"spec-kit-template-{ai_assistant}-{script_type}"
+    pattern = f"specforge-template-{ai_assistant}-{script_type}"
     matching_assets = [
         asset for asset in assets
         if pattern in asset["name"] and asset["name"].endswith(".zip")
@@ -1564,11 +1564,11 @@ def init(
 
     steps_lines.append(f"{step_num}. Start using slash commands with your AI agent:")
 
-    steps_lines.append("   2.1 [cyan]/speckit.constitution[/] - Establish project principles")
-    steps_lines.append("   2.2 [cyan]/speckit.specify[/] - Create baseline specification")
-    steps_lines.append("   2.3 [cyan]/speckit.plan[/] - Create implementation plan")
-    steps_lines.append("   2.4 [cyan]/speckit.tasks[/] - Generate actionable tasks")
-    steps_lines.append("   2.5 [cyan]/speckit.implement[/] - Execute implementation")
+    steps_lines.append("   2.1 [cyan]/specforge.constitution[/] - Establish project principles")
+    steps_lines.append("   2.2 [cyan]/specforge.specify[/] - Create baseline specification")
+    steps_lines.append("   2.3 [cyan]/specforge.plan[/] - Create implementation plan")
+    steps_lines.append("   2.4 [cyan]/specforge.tasks[/] - Generate actionable tasks")
+    steps_lines.append("   2.5 [cyan]/specforge.implement[/] - Execute implementation")
 
     steps_panel = Panel("\n".join(steps_lines), title="Next Steps", border_style="cyan", padding=(1,2))
     console.print()
@@ -1577,9 +1577,9 @@ def init(
     enhancement_lines = [
         "Optional commands that you can use for your specs [bright_black](improve quality & confidence)[/bright_black]",
         "",
-        f"○ [cyan]/speckit.clarify[/] [bright_black](optional)[/bright_black] - Ask structured questions to de-risk ambiguous areas before planning (run before [cyan]/speckit.plan[/] if used)",
-        f"○ [cyan]/speckit.analyze[/] [bright_black](optional)[/bright_black] - Cross-artifact consistency & alignment report (after [cyan]/speckit.tasks[/], before [cyan]/speckit.implement[/])",
-        f"○ [cyan]/speckit.checklist[/] [bright_black](optional)[/bright_black] - Generate quality checklists to validate requirements completeness, clarity, and consistency (after [cyan]/speckit.plan[/])"
+        f"○ [cyan]/specforge.clarify[/] [bright_black](optional)[/bright_black] - Ask structured questions to de-risk ambiguous areas before planning (run before [cyan]/specforge.plan[/] if used)",
+        f"○ [cyan]/specforge.analyze[/] [bright_black](optional)[/bright_black] - Cross-artifact consistency & alignment report (after [cyan]/specforge.tasks[/], before [cyan]/specforge.implement[/])",
+        f"○ [cyan]/specforge.checklist[/] [bright_black](optional)[/bright_black] - Generate quality checklists to validate requirements completeness, clarity, and consistency (after [cyan]/specforge.plan[/])"
     ]
     enhancements_panel = Panel("\n".join(enhancement_lines), title="Enhancement Commands", border_style="cyan", padding=(1,2))
     console.print()
@@ -1619,7 +1619,7 @@ def check():
 
     console.print(tracker.render())
 
-    console.print("\n[bold green]Specify CLI is ready to use![/bold green]")
+    console.print("\n[bold green]Forge CLI is ready to use![/bold green]")
 
     if not git_ok:
         console.print("[dim]Tip: Install git for repository management[/dim]")
@@ -1638,7 +1638,7 @@ def version():
     # Get CLI version from package metadata
     cli_version = "unknown"
     try:
-        cli_version = importlib.metadata.version("specify-cli")
+        cli_version = importlib.metadata.version("forge-cli")
     except Exception:
         # Fallback: try reading from pyproject.toml if running from source
         try:
@@ -1652,8 +1652,8 @@ def version():
             pass
     
     # Fetch latest template release version
-    repo_owner = "github"
-    repo_name = "spec-kit"
+    repo_owner = "Censseo"
+    repo_name = "specforge"
     api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
     
     template_version = "unknown"
@@ -1698,7 +1698,7 @@ def version():
 
     panel = Panel(
         info_table,
-        title="[bold cyan]Specify CLI Information[/bold cyan]",
+        title="[bold cyan]Forge CLI Information[/bold cyan]",
         border_style="cyan",
         padding=(1, 2)
     )

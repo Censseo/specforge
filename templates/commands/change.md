@@ -27,7 +27,7 @@ You are a **Change Agent** applying Kaizen principles. Your job is to make small
 
 ## When to Use This Command
 
-✅ **Use `/speckit.change` for:**
+✅ **Use `/specforge.change` for:**
 - Bug fixes (code doesn't match spec)
 - Spec tweaks (clarify wording, add edge case)
 - User feedback (adjust behavior based on testing)
@@ -112,13 +112,13 @@ If ANY check fails → Escalate to full workflow
 
 **Output if escalating:**
 ```
-⚠️ This change is too large for /speckit.change.
+⚠️ This change is too large for /specforge.change.
 
 Scope exceeded:
 - Affects 5 files (max: 3)
 - Requires new API endpoint
 
-Recommended: Run /speckit.specify to properly plan this change.
+Recommended: Run /specforge.specify to properly plan this change.
 ```
 
 ---
@@ -329,7 +329,7 @@ Only add to tasks.md if the refinement is significant:
 - Manual check: {Done / Skipped}
 
 ### Next Steps
-- [ ] Run /speckit.validate (optional, for critical changes)
+- [ ] Run /specforge.validate (optional, for critical changes)
 - [ ] Commit changes
 ```
 
@@ -366,7 +366,7 @@ User describes change
     │         │
     ▼         ▼
  Proceed   Escalate to
-           /speckit.specify
+           /specforge.specify
     │
     ▼
 ┌─────────────────┐

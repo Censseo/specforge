@@ -4,7 +4,7 @@
 
 ## Specification Principles
 
-> Rules that every spec.md MUST respect. These are validated by `/speckit.checklist`.
+> Rules that every spec.md MUST respect. These are validated by `/specforge.checklist`.
 
 ### Accessibility
 

@@ -101,7 +101,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
    f. **If no `/docs` exists**:
       - Log: "No consolidated documentation found - this is likely the first feature"
-      - Recommend running `/speckit.merge` after implementation to initialize `/docs`
+      - Recommend running `/specforge.merge` after implementation to initialize `/docs`
 
    **CRITICAL PRINCIPLE**: New features MUST be consistent with domain's documented business rules and entities.
 
@@ -139,7 +139,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
    c. **If no registry exists**:
       - Log: "⚠️ No architecture registry found - this is the first feature or registry not initialized"
-      - Recommend running `/speckit.learn` after this feature to initialize registry
+      - Recommend running `/specforge.learn` after this feature to initialize registry
       - Proceed without constraints (but document all decisions for later extraction)
 
    **CRITICAL PRINCIPLE**: New features MUST align with established patterns. Divergence requires explicit justification.

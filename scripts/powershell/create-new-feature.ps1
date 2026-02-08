@@ -262,8 +262,8 @@ if (Test-Path $template) {
     New-Item -ItemType File -Path $specFile | Out-Null 
 }
 
-# Set the SPECIFY_FEATURE environment variable for the current session
-$env:SPECIFY_FEATURE = $branchName
+# Set the SPECFORGE_FEATURE environment variable for the current session
+$env:SPECFORGE_FEATURE = $branchName
 
 if ($Json) {
     $obj = [PSCustomObject]@{ 
@@ -278,6 +278,6 @@ if ($Json) {
     Write-Output "SPEC_FILE: $specFile"
     Write-Output "FEATURE_NUM: $featureNum"
     Write-Output "HAS_GIT: $hasGit"
-    Write-Output "SPECIFY_FEATURE environment variable set to: $branchName"
+    Write-Output "SPECFORGE_FEATURE environment variable set to: $branchName"
 }
 

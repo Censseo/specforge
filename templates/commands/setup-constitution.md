@@ -19,7 +19,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 You are updating the project constitution at `/memory/constitution.md`. This file is a TEMPLATE containing placeholder tokens in square brackets (e.g. `[PROJECT_NAME]`, `[ACCESSIBILITY_REQUIREMENTS]`). Your job is to (a) collect/derive concrete values, (b) fill the template precisely, and (c) propagate any amendments across dependent artifacts.
 
 **IMPORTANT DISTINCTION**:
-- **Specification Principles** = Rules that EVERY spec.md must follow (Accessibility, Performance, Security, Error Handling, Data). These are validated by `/speckit.checklist` automatically.
+- **Specification Principles** = Rules that EVERY spec.md must follow (Accessibility, Performance, Security, Error Handling, Data). These are validated by `/specforge.checklist` automatically.
 - **Development Principles** = Rules for HOW to build (TDD, Library-First, etc.). These guide implementation.
 - **Business Constraints** = Domain-specific compliance, legal requirements.
 

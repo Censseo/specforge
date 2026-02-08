@@ -29,7 +29,7 @@ Run each sub-command as a sub-agent, in order:
 
 ### 1. Constitution
 
-Run `/speckit.setup-constitution`
+Run `/specforge.setup-constitution`
 
 Creates `/memory/constitution.md` with project principles.
 
@@ -39,7 +39,7 @@ Creates `/memory/constitution.md` with project principles.
 
 ### 2. Docs
 
-Run `/speckit.setup-docs` (pass through `from-code`/`from-docs`/`from-specs` if provided)
+Run `/specforge.setup-docs` (pass through `from-code`/`from-docs`/`from-specs` if provided)
 
 Initializes `/docs/{domain}/spec.md` structure.
 
@@ -49,7 +49,7 @@ Initializes `/docs/{domain}/spec.md` structure.
 
 ### 3. Skills
 
-Run `/speckit.setup-skills`
+Run `/specforge.setup-skills`
 
 Configures skills based on detected frameworks.
 
@@ -59,7 +59,7 @@ Configures skills based on detected frameworks.
 
 ### 4. Agents
 
-Run `/speckit.setup-agents`
+Run `/specforge.setup-agents`
 
 Generates specialized subagents for SpecKit workflow.
 
@@ -69,7 +69,7 @@ Generates specialized subagents for SpecKit workflow.
 
 ### 5. MCP
 
-Run `/speckit.setup-mcp`
+Run `/specforge.setup-mcp`
 
 Configures MCP server for testing and automation.
 
@@ -93,5 +93,5 @@ Configures MCP server for testing and automation.
 ### Next Steps
 1. Review /memory/constitution.md
 2. Review /docs/{domain}/spec.md files
-3. Start first feature: /speckit.specify "your feature"
+3. Start first feature: /specforge.specify "your feature"
 ```

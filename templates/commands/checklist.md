@@ -19,10 +19,10 @@ scripts:
 | **Review** | `review`, `validate`, `check` | Validates existing checklists against spec/plan |
 
 **Examples:**
-- `/speckit.checklist` → Generate mode (asks clarifying questions)
-- `/speckit.checklist ux` → Generate UX checklist
-- `/speckit.checklist review` → Review all existing checklists
-- `/speckit.checklist review constitution` → Review only constitution.md checklist
+- `/specforge.checklist` → Generate mode (asks clarifying questions)
+- `/specforge.checklist ux` → Generate UX checklist
+- `/specforge.checklist review` → Review all existing checklists
+- `/specforge.checklist review constitution` → Review only constitution.md checklist
 
 ---
 
@@ -134,7 +134,7 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Format: `[domain].md`
      - If file exists, append to existing file
    - Number items sequentially starting from CHK001
-   - Each `/speckit.checklist` run creates a NEW file (never overwrites existing checklists)
+   - Each `/specforge.checklist` run creates a NEW file (never overwrites existing checklists)
 
    **CONSTITUTION-BASED ITEMS** (Auto-generated from `/memory/constitution.md`):
 
@@ -289,7 +289,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Actor/timing
    - Any explicit user-specified must-have items incorporated
 
-**Important**: Each `/speckit.checklist` command invocation creates a checklist file using short, descriptive names unless file already exists. This allows:
+**Important**: Each `/specforge.checklist` command invocation creates a checklist file using short, descriptive names unless file already exists. This allows:
 
 - Multiple checklists of different types (e.g., `ux.md`, `test.md`, `security.md`)
 - Simple, memorable filenames that indicate checklist purpose
@@ -406,7 +406,7 @@ Scan `FEATURE_DIR/checklists/` for all `.md` files:
 - If specific checklist specified (e.g., `review constitution`), load only that file
 - Otherwise, load all checklist files
 
-**If no checklists exist**: Abort with message "No checklists found. Run `/speckit.checklist` first to generate."
+**If no checklists exist**: Abort with message "No checklists found. Run `/specforge.checklist` first to generate."
 
 ### 3. Load Feature Context
 
@@ -501,6 +501,6 @@ After presenting the report, ask:
 
 Based on results:
 
-- **All PASS**: "All checklist items validated. Ready for `/speckit.implement`."
-- **Some FAIL**: "Address {N} failed items before implementation. Consider running `/speckit.clarify` to resolve gaps."
-- **Many FAIL**: "Significant gaps detected. Consider revisiting `/speckit.specify` to improve spec completeness."
+- **All PASS**: "All checklist items validated. Ready for `/specforge.implement`."
+- **Some FAIL**: "Address {N} failed items before implementation. Consider running `/specforge.clarify` to resolve gaps."
+- **Many FAIL**: "Significant gaps detected. Consider revisiting `/specforge.specify` to improve spec completeness."

@@ -11,7 +11,7 @@
   into smaller, manageable features. Each feature can be specified,
   planned, and implemented independently.
 
-  Use /speckit.specify with this file to create a formal specification.
+  Use /specforge.specify with this file to create a formal specification.
 -->
 
 ## Summary
@@ -136,7 +136,7 @@
 
   These hints will be:
   1. Carried forward to spec.md as "Technical Hints (For Planning)"
-  2. Validated during /speckit.plan for alignment
+  2. Validated during /specforge.plan for alignment
   3. Traced to specific tasks in tasks.md
   4. Verified before implementation begins
 
@@ -205,7 +205,7 @@
 ## Specification Status
 
 <!--
-  This section is updated by /speckit.specify when the feature is specified.
+  This section is updated by /specforge.specify when the feature is specified.
   Do not fill in manually.
 -->
 

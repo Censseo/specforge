@@ -22,10 +22,10 @@ This command completes the feature lifecycle by:
 1. **Verifying** all tasks are completed
 2. **Merging** the feature branch into main
 3. **Consolidating** feature documentation into `/docs` (persistent reference)
-4. **Optionally** running `/speckit.learn` to update architecture registry and local CLAUDE.md files
+4. **Optionally** running `/specforge.learn` to update architecture registry and local CLAUDE.md files
 5. **Pushing** main to remote
 
-The `/docs` directory becomes the **single source of truth** for business and functional specifications, referenced by future `/speckit.specify` and `/speckit.plan` executions.
+The `/docs` directory becomes the **single source of truth** for business and functional specifications, referenced by future `/specforge.specify` and `/specforge.plan` executions.
 
 ## Outline
 
@@ -148,7 +148,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    ```markdown
    # Project Documentation
 
-   > Auto-maintained by /speckit.merge. Last updated: {date}
+   > Auto-maintained by /specforge.merge. Last updated: {date}
 
    ## Domains
 
@@ -195,19 +195,19 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ### Phase 4: Post-Merge Actions
 
-11. **Offer to run /speckit.learn**:
+11. **Offer to run /specforge.learn**:
 
     ```markdown
     Feature merged successfully.
 
-    Run /speckit.learn to update:
+    Run /specforge.learn to update:
     - Architecture registry (patterns from this feature)
     - Local CLAUDE.md files (module conventions)
 
     Run learn? (yes/no)
     ```
 
-    If yes → execute `/speckit.learn {feature-id}`
+    If yes → execute `/specforge.learn {feature-id}`
 
 12. **Push to remote**:
 
@@ -250,7 +250,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
     ### Next Steps
     - Review /docs/{domain}/spec.md for accuracy
-    - Start next feature with /speckit.specify
+    - Start next feature with /specforge.specify
     ```
 
 ## Output Files
@@ -270,32 +270,32 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ```bash
 # Merge current branch
-/speckit.merge
+/specforge.merge
 
 # Merge specific branch
-/speckit.merge feat/001-user-auth
+/specforge.merge feat/001-user-auth
 
 # Preview without merging
-/speckit.merge dry-run
+/specforge.merge dry-run
 
 # Merge and run learn
-/speckit.merge --learn
+/specforge.merge --learn
 ```
 
 ## Integration with Workflow
 
 ```
-/speckit.specify  → Creates specs/{feature}/spec.md
-/speckit.plan     → Creates plan.md, contracts/, data-model.md
-/speckit.tasks    → Creates tasks.md
-/speckit.implement → Creates task-results/
+/specforge.specify  → Creates specs/{feature}/spec.md
+/specforge.plan     → Creates plan.md, contracts/, data-model.md
+/specforge.tasks    → Creates tasks.md
+/specforge.implement → Creates task-results/
 
-/speckit.merge    → Consolidates into /docs, merges to main
+/specforge.merge    → Consolidates into /docs, merges to main
                   → /docs/ now contains business specs for this feature
 
 Next feature:
-/speckit.specify  → Reads /docs/ for context and consistency
-/speckit.plan     → Reads /docs/ + architecture-registry.md
+/specforge.specify  → Reads /docs/ for context and consistency
+/specforge.plan     → Reads /docs/ + architecture-registry.md
 ```
 
 ## Dry Run Mode
