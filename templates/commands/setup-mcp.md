@@ -132,7 +132,7 @@ Create `.mcp/project-server/src/config.ts` with detected services:
 ```typescript
 export const config: ProjectConfig = {
   name: "{{PROJECT_NAME}}",
-  rootDir: "{{ABSOLUTE_PROJECT_PATH}}",
+  rootDir: PROJECT_ROOT, // auto-computed from file location
 
   services: [
     // Generated based on detected stack
@@ -173,11 +173,11 @@ export const config: ProjectConfig = {
 
 Replace all `{{PLACEHOLDER}}` tokens in copied files:
 
-| Placeholder | Value |
-|-------------|-------|
+| Placeholder        | Value                               |
+|--------------------|-------------------------------------|
 | `{{PROJECT_NAME}}` | Directory name or from package.json |
-| `{{PROJECT_ROOT}}` | Absolute path to project root |
-| `{{MCP_PATH}}` | Absolute path to `.mcp/project-server` |
+
+> **Note**: `rootDir` is auto-computed at runtime from the file's location — no absolute path placeholder needed.
 
 ---
 
@@ -270,7 +270,7 @@ Create or update `__AGENT_DIR__/mcp.json`:
   "mcpServers": {
     "project": {
       "command": "node",
-      "args": ["{{PROJECT_ROOT}}/.mcp/project-server/dist/index.js"]
+      "args": [".mcp/project-server/dist/index.js"]
     }
   }
 }

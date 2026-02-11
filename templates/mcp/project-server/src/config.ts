@@ -5,6 +5,15 @@
  * Modify the services, commands, and settings to match your stack.
  */
 
+import { fileURLToPath } from "node:url";
+import * as path from "node:path";
+
+// Compute project root relative to this file's location
+// From .mcp/project-server/{src,dist}/config.{ts,js} → project root is 4 levels up
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, "../../../..");
+
 export interface ServiceConfig {
   name: string;
   command: string;
@@ -42,7 +51,7 @@ export interface ProjectConfig {
 
 export const config: ProjectConfig = {
   name: "{{PROJECT_NAME}}",
-  rootDir: "{{PROJECT_ROOT}}",
+  rootDir: PROJECT_ROOT,
 
   services: [
     // Example backend service (Java/Spring)
