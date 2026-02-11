@@ -12,15 +12,16 @@ handoffs:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Outline
 
 You are updating the project constitution at `/memory/constitution.md`. This file is a TEMPLATE containing placeholder tokens in square brackets (e.g. `[PROJECT_NAME]`, `[ACCESSIBILITY_REQUIREMENTS]`). Your job is to (a) collect/derive concrete values, (b) fill the template precisely, and (c) propagate any amendments across dependent artifacts.
 
-**IMPORTANT DISTINCTION**:
-- **Specification Principles** = Rules that EVERY spec.md must follow (Accessibility, Performance, Security, Error Handling, Data). These are validated by `/specforge.checklist` automatically.
-- **Development Principles** = Rules for HOW to build (TDD, Library-First, etc.). These guide implementation.
+Three principle categories exist (each serves a different downstream consumer):
+
+- **Specification Principles** = Rules that every spec.md must follow (Accessibility, Performance, Security, Error Handling, Data). Validated by `/specforge.checklist` automatically.
+- **Development Principles** = Rules for how to build (TDD, Library-First, etc.). Guide implementation.
 - **Business Constraints** = Domain-specific compliance, legal requirements.
 
 Follow this execution flow:
@@ -30,7 +31,7 @@ Follow this execution flow:
    - The template has TWO main principle sections:
      - **Specification Principles**: Accessibility, Performance, Security, Error Handling, Data & State
      - **Development Principles**: TDD, Library-First, Simplicity, etc. (user-defined)
-   **IMPORTANT**: The user might require less or more development principles. Specification Principles sections should always exist (even if marked as "Not applicable to this project").
+   The user might require fewer or more development principles. Specification Principles sections should always exist (even if marked as "Not applicable to this project") because `/specforge.checklist` reads them.
 
 2. Collect/derive values for placeholders:
    - If user input (conversation) supplies a value, use it.
@@ -62,7 +63,7 @@ Follow this execution flow:
    - Read `/templates/plan-template.md` and ensure any "Constitution Check" or rules align with updated principles.
    - Read `/templates/spec-template.md` for scope/requirements alignment—update if constitution adds/removes mandatory sections or constraints.
    - Read `/templates/tasks-template.md` and ensure task categorization reflects new or removed principle-driven task types (e.g., observability, versioning, testing discipline).
-   - **CRITICAL**: `/templates/commands/checklist.md` auto-generates items from constitution. Verify Specification Principles are well-defined so checklist generation works properly.
+   - `/templates/commands/checklist.md` auto-generates items from constitution — verify Specification Principles are well-defined so checklist generation works properly.
    - Read each command file in `/templates/commands/*.md` (including this one) to verify no outdated references (agent-specific names like CLAUDE only) remain when generic guidance is required.
    - Read any runtime guidance docs (e.g., `README.md`, `docs/quickstart.md`, or agent-specific guidance files if present). Update references to principles changed.
 

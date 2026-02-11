@@ -14,7 +14,7 @@ semantic_anchors:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Outline
 
@@ -25,92 +25,76 @@ You **MUST** consider the user input before proceeding (if not empty).
 1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
 
 2. **Load required context documents**:
-   - **REQUIRED**: Read tasks.md for complete task list and structure
-   - **REQUIRED**: Read plan.md for tech stack and architecture
-   - **REQUIRED**: Read research.md for:
-     - **Existing Codebase Analysis** section (reusable components, patterns)
-     - **Reuse decisions** (REUSE/EXTEND/REFACTOR/NEW for each component)
-     - **Technical decisions** with justifications
-   - **REQUIRED**: Read `/memory/architecture-registry.md` for:
-     - **Established Patterns** that MUST be followed
-     - **Technology Decisions** that MUST be used
-     - **Component Conventions** for locations and naming
-     - **Anti-Patterns** that MUST be avoided
-   - **IF EXISTS**: Read spec.md for feature requirements
-   - **IF EXISTS**: Read data-model.md for entities and relationships
-   - **IF EXISTS**: Read constitution.md for project principles
-   - **IF EXISTS**: Scan contracts/ directory for API specifications
 
-   **CRITICAL**: Extract from research.md:
-   - List of components marked for REUSE (must wire up, not recreate)
-   - List of components marked for EXTEND (must add to existing, not duplicate)
-   - List of components marked for REFACTOR (must modify existing)
-   - List of components marked for NEW (only these should create new files)
+   <required_docs>
 
-   **CRITICAL**: Extract from architecture-registry.md (ARCHITECTURE_CONTEXT):
-   - Established patterns to follow (with file references)
-   - Technology decisions (what tools/libs to use)
-   - Component conventions (where to put files, how to name them)
-   - Anti-patterns to avoid (what NOT to do)
+   - tasks.md — complete task list and structure
+   - plan.md — tech stack and architecture
+   - research.md — reuse decisions (REUSE/EXTEND/REFACTOR/NEW per component), existing codebase analysis, technical decisions
+   - `/memory/architecture-registry.md` — established patterns, technology decisions, component conventions, anti-patterns
 
-2b. **Check for specialized agents**:
-   - Check if __AGENT_DIR__/agents/speckit/researcher.md exists
-   - Check if __AGENT_DIR__/agents/speckit/planner.md exists
-   - Store availability for later use (will determine which subagent_type to use)
+   </required_docs>
 
-3. **Analyze tasks.md progression**:
+   <optional_docs>
+
+   - spec.md — feature requirements
+   - data-model.md — entities and relationships
+   - constitution.md — project principles
+   - contracts/ directory — API specifications
+
+   </optional_docs>
+
+   Extract from research.md: the list of components and their reuse classification (REUSE, EXTEND, REFACTOR, NEW). This determines whether each task wires up existing code, extends it, refactors it, or creates something new.
+
+   Extract from architecture-registry.md (ARCHITECTURE_CONTEXT): established patterns with file references, technology decisions, component conventions (file locations and naming), and anti-patterns to avoid.
+
+3. **Check for specialized agents**:
+
+   - Check if `__AGENT_DIR__/agents/speckit/researcher.md` and `__AGENT_DIR__/agents/speckit/planner.md` exist
+   - Store availability for later use (determines subagent_type)
+
+4. **Analyze tasks.md progression**:
+
    - Parse all phases and their tasks
-   - Identify completed tasks (marked with [X] or [x])
-   - Identify incomplete tasks (marked with [ ])
-   - Determine current phase: **first phase with incomplete tasks**
+   - Identify completed (`[X]`/`[x]`) and incomplete (`[ ]`) tasks
+   - Determine current phase: first phase with incomplete tasks
    - Extract task count per phase (completed / total)
 
-4. **Scan for existing implementation results**:
-   - Check if task-plans/ directory exists
-   - Look for existing task plan files (T###-*.md)
-   - Check if task-results/ directory exists
-   - Look for task result files (T###-result.md) from previous implement runs
-   - Build list of available context from completed tasks
-   - **Use result files**: Extract gotchas discovered, patterns that worked/failed, deviations from plans - pass to planner agent as lessons learned
+5. **Scan for existing implementation results**:
 
-5. **Display progression status**:
-   ```
-   📊 Feature Progress: {feature-name}
+   - Check task-plans/ for existing plan files (T###-*.md)
+   - Check task-results/ for result files (T###-result.md) from previous implement runs
+   - Build available context list; extract gotchas, patterns that worked/failed, deviations from plans
 
-   Phase 1: Setup - ✅ Complete (3/3 tasks)
-   Phase 2: Foundational - 🔄 In Progress (5/47 tasks)  ← CURRENT PHASE
-   Phase 3: User Story 1 - ⏳ Pending (0/4 tasks)
+6. **Display progression status**:
+
+   ```text
+   Feature Progress: {feature-name}
+
+   Phase 1: Setup - Complete (3/3 tasks)
+   Phase 2: Foundational - In Progress (5/47 tasks)  <- CURRENT PHASE
+   Phase 3: User Story 1 - Pending (0/4 tasks)
    ...
-
-   Current Phase: Phase 2 - Foundational
-   Remaining Tasks: 42
    ```
 
-6. **Ask user for confirmation**:
+7. **Ask user for confirmation**:
+
    - Show: "Ready to create detailed plans for **Phase {N}: {Phase Name}** ({count} incomplete tasks)"
-   - Options:
-     - "yes" or "continue" → proceed with current phase
-     - "next" → skip to next incomplete phase
-     - "all" → process all remaining phases
-     - "phase {N}" → jump to specific phase
-   - **STOP and wait for user response**
+   - Options: "yes"/"continue" (proceed), "next" (skip to next phase), "all" (process all remaining), "phase {N}" (jump to specific)
+   - Stop and wait for user response.
 
 ### Phase 2: Research Phase (Only After User Confirmation)
 
-This phase runs **ONLY** after user confirms which phase to process.
+Runs only after user confirms which phase to process. The purpose is to reduce uncertainty between the technical plan and actual implementation by validating reuse decisions against current codebase state.
 
-**PURPOSE**: Reduce uncertainty between the technical plan and actual implementation by validating reuse decisions against current codebase state.
-
-7. **Launch researcher agent for codebase analysis**:
+1. **Launch researcher agent for codebase analysis**:
 
    Use Task tool with:
-   - If __AGENT_DIR__/agents/speckit/researcher.md exists: subagent_type="researcher"
+   - If `__AGENT_DIR__/agents/speckit/researcher.md` exists: subagent_type="researcher"
    - Otherwise: subagent_type="Explore" with thoroughness="medium"
-   - **Model**: sonnet (requires judgment for REUSE validation, not just file exploration)
+   - Model: sonnet (reuse validation requires judgment)
 
-   Prompt:
-
-   ```
+   <researcher_prompt>
    You are the researcher agent for SpecKit breakdown.
 
    Task: Validate reuse decisions and analyze the codebase for {Phase Name} implementation.
@@ -122,474 +106,231 @@ This phase runs **ONLY** after user confirms which phase to process.
    - Tech stack: {from plan.md}
    - Previous reuse decisions: {from research.md Existing Codebase Analysis}
 
-   ## ARCHITECTURE CONTEXT (from registry - MUST FOLLOW)
+   <architecture_context>
+   Patterns: {applicable patterns from architecture-registry.md with file references}
+   Technology decisions: {applicable tech decisions}
+   Conventions: {file location and naming conventions}
+   Anti-patterns: {what to avoid}
+   </architecture_context>
 
-   ### Established Patterns
-   {list patterns from architecture-registry.md that apply to this phase}
+   ## Validate Reuse Decisions
 
-   ### Technology Decisions
-   {list tech decisions from registry that apply}
+   For each task, verify its reuse classification is still accurate. The plan made these decisions during /specforge.plan — your job is to confirm or flag changes:
 
-   ### Component Conventions
-   {list conventions for file locations and naming}
+   - **[REUSE]**: Verify component exists at specified location with expected interface. Flag as REUSE_NEEDS_UPDATE if changed.
+   - **[EXTEND]**: Verify base component and identify exact extension points. Flag as EXTEND_BLOCKED if approach is no longer valid.
+   - **[REFACTOR]**: Verify component is refactorable and identify all affected usages and tests. Flag as REFACTOR_HIGH_RISK if risky.
+   - **[NEW]**: Double-check no existing code serves this purpose. Flag as NEW_SHOULD_BE_REUSE if reusable code found.
 
-   ### Anti-Patterns to AVOID
-   {list anti-patterns from registry}
-
-   ## CRITICAL: Validate Reuse Decisions
-
-   The plan made reuse decisions during /specforge.plan. Your job is to VALIDATE these are still accurate:
-
-   ### For each [REUSE] task:
-   - VERIFY the component still exists at the specified location
-   - CONFIRM it still has the expected interface/API
-   - CHECK for any recent changes that might affect usage
-   - If changed: Flag as REUSE_NEEDS_UPDATE
-
-   ### For each [EXTEND] task:
-   - VERIFY the base component exists
-   - IDENTIFY the exact extension points (methods, hooks, interfaces)
-   - CHECK if the extension approach is still valid
-   - If blocked: Flag as EXTEND_BLOCKED with reason
-
-   ### For each [REFACTOR] task:
-   - VERIFY the component exists and is refactorable
-   - IDENTIFY all usages that will be affected
-   - CHECK for tests that need updating
-   - If risky: Flag as REFACTOR_HIGH_RISK with details
-
-   ### For each [NEW] task:
-   - DOUBLE-CHECK no existing code can serve this purpose
-   - IDENTIFY similar patterns to follow
-   - If reusable code found: Flag as NEW_SHOULD_BE_REUSE
-
-   ## Standard Research Goals
+   ## Standard Research
 
    1. Find existing code patterns relevant to these tasks
-   2. Identify framework-specific best practices (be agnostic - discover patterns)
-   3. Locate reference implementations in the codebase
-   4. Find similar features or components already implemented
-   5. Note any gotchas or special considerations from constitution.md
+   2. Locate reference implementations and similar features in the codebase
+   3. Note gotchas or special considerations from constitution.md
 
-   Search strategies:
-   - Use Glob to find files matching patterns from task descriptions
-   - Use Grep to search for similar implementations
-   - Read key files that show architectural patterns
-   - Check .repomix/ files if they exist for reference patterns
+   Search strategies: Glob for file patterns, Grep for similar implementations, read key architectural files, check .repomix/ for reference patterns.
 
-   Deliverable: Return a structured research report with:
+   ## Deliverable
 
-   ## Reuse Validation Report
+   Return a structured report with these sections:
 
-   | Task | Original Decision | Validation | Status |
-   |------|-------------------|------------|--------|
-   | T001 | [REUSE] AuthService | Component exists, API unchanged | ✅ VALID |
-   | T002 | [EXTEND] ReportService | New method signature needed | ⚠️ NEEDS_UPDATE |
-   | T003 | [NEW] PaymentGateway | Found existing payment code! | ❌ SHOULD_REUSE |
+   **Reuse Validation Report**
 
-   ## Implementation Gaps Discovered
+   | Task | Original Decision      | Validation                      | Status       |
+   |------|------------------------|---------------------------------|--------------|
+   | T001 | [REUSE] AuthService    | Component exists, API unchanged | VALID        |
+   | T002 | [EXTEND] ReportService | New method signature needed     | NEEDS_UPDATE |
 
-   - Gap 1: [what the plan assumed vs. what actually exists]
-   - Gap 2: [interface mismatch between plan and reality]
+   **Implementation Gaps**
+   - {what the plan assumed vs. what actually exists}
 
-   ## Existing Patterns Found
-   - Pattern: {name} at file:line
+   **Existing Patterns Found**
    - Pattern: {name} at file:line
 
-   ## Framework Best Practices Discovered
-   - Practice 1 with code snippets
-   - Practice 2 with references
+   **Gotchas and Dependencies**
+   - {gotchas from constitution or previous implementations}
+   - {imports needed per task}
+   </researcher_prompt>
 
-   ## Gotchas and Special Considerations
-   - Gotcha 1 from constitution or code
-   - Gotcha 2 from previous implementations
+2. **Validate and report reuse decision changes**:
 
-   ## Dependencies and Imports Needed
-   - Import list per task
-   ```
-
-8. **Validate and report reuse decision changes**:
    - Parse researcher agent response
-   - If any NEEDS_UPDATE, BLOCKED, HIGH_RISK, or SHOULD_REUSE flags:
-     - Display to user: "⚠️ Reuse decisions need review:"
-     - List each flagged task with reason
-     - Ask: "Update tasks with corrected decisions? (yes/no)"
-     - If yes: Update tasks.md markers accordingly
-   - Store validated research findings for use in planning
+   - If any flags (NEEDS_UPDATE, BLOCKED, HIGH_RISK, SHOULD_REUSE): display to user, ask to update tasks.md markers
+   - Store validated research findings for planning phase
 
-### Phase 3: Group-Based Task Planning (Optimized)
+### Phase 3: Group-Based Task Planning
 
-This phase plans tasks **by logical groups** for efficiency (fewer agent calls, less tokens).
+Plans tasks by logical groups for efficiency (fewer agent calls, less token usage).
 
-9. **Prepare tasks for planning**:
+1. **Prepare tasks for planning**:
 
-   a. **Collect incomplete tasks**:
-      - Filter tasks without existing plans (no task-plans/T{number}-*.md)
-      - Log skipped tasks: "⏭️  T{number}: Plan already exists, skipping"
+   a. **Collect incomplete tasks** without existing plans. Log skipped tasks.
 
    b. **Group tasks by topic** (priority order):
-      1. **By User Story**: Group [US1], [US2], etc. tasks together
-      2. **By domain/topic**: Detect from task descriptions:
-         - "model", "entity", "schema" → Data Models group
-         - "api", "endpoint", "route" → API group
-         - "component", "page", "view", "ui" → Frontend group
-         - "service", "repository" → Backend Services group
-         - "test", "spec" → Testing group
-         - "config", "setup" → Configuration group
-      3. **By target directory**: Group tasks targeting same folder
-      4. **Ungrouped**: Tasks that don't fit above categories
+      1. By User Story: [US1], [US2], etc.
+      2. By domain: "model/entity/schema" -> Data Models, "api/endpoint/route" -> API, "component/page/view/ui" -> Frontend, "service/repository" -> Backend, "test/spec" -> Testing, "config/setup" -> Configuration
+      3. By target directory: tasks targeting same folder
+      4. Ungrouped: remaining tasks
 
    c. **Display grouping**:
-      ```
-      📦 Task Groups for Phase {N}:
 
-      Group 1: Data Models (5 tasks)
-        T004, T005, T006, T007, T008
+      ```text
+      Task Groups for Phase {N}:
 
-      Group 2: API Endpoints (8 tasks)
-        T009, T010, T011, T012, T013, T014, T015, T016
-
-      Group 3: Frontend Components (4 tasks)
-        T017, T018, T019, T020
-
-      Group 4: Other (2 tasks)
-        T021, T022
+      Group 1: Data Models (5 tasks) — T004, T005, T006, T007, T008
+      Group 2: API Endpoints (8 tasks) — T009-T016
+      Group 3: Frontend Components (4 tasks) — T017-T020
       ```
 
-   d. **Load shared context for phase**:
-      - Check for previous task results (task-results/*.md)
-      - Extract lessons learned, gotchas, patterns that worked/failed
-      - This context will be passed to ALL groups
+   d. **Load shared context**: previous task results (lessons learned, gotchas) to pass to all groups.
 
-10. **For each task group** (sequential groups, but all tasks in group planned together):
+2. **For each task group** (sequential groups, all tasks in group planned together):
 
-    a. **Launch planner agent for entire group**:
+   a. **Launch planner agent**:
 
-       Use Task tool with:
-       - If __AGENT_DIR__/agents/speckit/planner.md exists: subagent_type="planner"
-       - Otherwise: subagent_type="general-purpose"
-       - **Model selection** (adaptive):
-         - Default: **sonnet** (good balance of reasoning and speed)
-         - Use **opus** when ANY of these conditions apply:
-           * Group contains security/auth/payment tasks
-           * Group has 10+ tasks with complex dependencies
-           * Tasks involve cross-domain integration (frontend + backend + data)
-           * User explicitly requested thorough analysis
-           * Previous planning attempts produced suboptimal results
+      Use Task tool with:
+      - If `__AGENT_DIR__/agents/speckit/planner.md` exists: subagent_type="planner"
+      - Otherwise: subagent_type="general-purpose"
+      - Model: sonnet by default. Escalate to opus when: group contains security/auth/payment tasks, 10+ tasks with complex dependencies, cross-domain integration, or user explicitly requested thorough analysis.
 
-       Prompt:
+      <planner_prompt>
+      You are the planner agent for SpecKit breakdown.
 
-       ```
-       You are the planner agent for SpecKit breakdown.
+      Task: Create implementation plans for ALL tasks in this group.
+      Group: {group_name} ({count} tasks)
+      Phase: {phase_name}
 
-       Task: Create implementation plans for ALL tasks in this group.
+      Tasks to plan:
+      {for each task: T{number}: {description} [P={yes/no}] [Story={US# or N/A}]}
 
-       Group: {group_name} ({count} tasks)
-       Phase: {phase_name}
+      <context>
+      Research findings: {summary from researcher agent}
+      Previous task results: {lessons learned from task-results/*.md}
+      Tech stack: {from plan.md}
+      Data model: {from data-model.md if relevant}
+      Contracts: {from contracts/ if relevant}
+      </context>
 
-       Tasks to plan:
-       {for each task in group:}
-       - T{number}: {description} [P={yes/no}] [Story={US# or N/A}]
-       {end for}
+      <architecture_context>
+      Established patterns: {patterns with file references}
+      Technology decisions: {tools/libs to use}
+      Component conventions: {file locations and naming}
+      Anti-patterns: {what to avoid}
+      </architecture_context>
 
-       Context Available:
-       - Research findings: {summary from researcher agent}
-       - Previous task results: {lessons learned from task-results/*.md}
-       - Tech stack: {from plan.md}
-       - Data model: {from data-model.md if relevant}
-       - Contracts: {from contracts/ if relevant}
+      Plans that violate established patterns without justification will cause architectural drift — flag any necessary divergence.
 
-       ## ARCHITECTURE CONTEXT (from registry - MUST FOLLOW)
+      Generate a plan for each task. Separate plans with exactly:
+      ---TASK_SEPARATOR---
 
-       ### Established Patterns (USE THESE)
-       {list patterns from architecture-registry.md with file references}
+      For each task, use this template structure (use these exact heading levels in output):
 
-       ### Technology Decisions (USE THESE TOOLS/LIBS)
-       {list tech decisions - e.g., "Validation: Zod", "State: Zustand"}
+      ``# Task Plan: T{number}``
 
-       ### Component Conventions (PUT FILES HERE, NAME LIKE THIS)
-       {list conventions - e.g., "Services → src/services/{domain}Service.ts"}
+      ``## Task Description``
+      {description}
+      Phase: {phase} | User Story: {US# or N/A} | Parallel: {Yes/No} | Reuse Type: {REUSE/EXTEND/REFACTOR/NEW}
 
-       ### Anti-Patterns (DO NOT DO THIS)
-       {list anti-patterns - e.g., "Direct DB access in routes → Use repository"}
+      ``## Architecture Alignment``
+      - Patterns applied: {which registry patterns, how applied}
+      - Tech decisions followed: {which, how}
+      - Conventions: file at {correct path}, named per convention
+      - Anti-patterns avoided: {list or N/A}
+      - Status: Aligned / Divergent (with justification)
 
-       **CRITICAL**: Plans MUST follow established patterns. If a task would violate a pattern, flag it.
+      ``## Reuse Decision``
+      Original: {from tasks.md} | Validation: {VALID/NEEDS_UPDATE/SHOULD_REUSE}
+      For REUSE: existing component path, wiring steps, no new files.
+      For EXTEND: base component path, extension point, new capability.
+      For REFACTOR: target path, goal, affected usages.
+      For NEW: justification, similar pattern to follow.
 
-       CRITICAL: Generate a plan for EACH task. Separate plans with exactly this line:
-       ---TASK_SEPARATOR---
+      ``## Codebase Impact``
+      - Files to create (NEW only): `{path}` — {purpose}
+      - Files to modify: `{path}:{line}` — {change}
+      - Dependencies: imports, services, data models
 
-       For EACH task, use this structure:
+      ``## Implementation Steps``
+      1. {step with file:line references}
+      2. {step}
+      Gotchas: {list}
 
-       # Task Plan: T{number}
+      ``## Related Tasks``
+      Depends on: T{numbers} | Blocks: T{numbers} | Parallel with: T{numbers}
 
-       ## Task Description
-       {full task description}
-       **Phase**: {phase}
-       **User Story**: {US# or N/A}
-       **Parallel**: {Yes/No}
-       **Reuse Type**: {REUSE/EXTEND/REFACTOR/NEW}
+      ``## Estimated Complexity``
+      {Simple/Moderate/Complex} | {5min/15min/30min/1h/2h} | Risk: {Low/Medium/High}
 
-       ---
+      ---TASK_SEPARATOR---
+      </planner_prompt>
 
-       ## Architecture Alignment (CRITICAL)
+   b. **Parse and write individual plan files**:
+      - Split response by `---TASK_SEPARATOR---`
+      - For each plan: extract task ID from `# Task Plan: T{number}`, sanitize description for filename (lowercase, hyphens, max 50 chars)
+      - Create task-plans/ directory if needed
+      - Write to `task-plans/T{number}-{sanitized-description}.md`
 
-       **Registry Patterns Applied**:
-       - [ ] {Pattern 1}: {how applied or N/A}
-       - [ ] {Pattern 2}: {how applied or N/A}
+   c. **Update tasks.md** with plan references: append `[Plan](task-plans/T{number}-{filename}.md)` to each planned task.
 
-       **Technology Decisions Followed**:
-       - [ ] {Tech 1}: {used as specified or N/A}
+   d. Log group completion: "{group_name}: {count} plans created"
 
-       **Conventions Followed**:
-       - [ ] File location: {correct path per convention}
-       - [ ] Naming: {follows convention}
+3. **Phase completion**:
 
-       **Anti-Patterns Avoided**: {list or "None applicable"}
-
-       **Alignment Status**: ✅ Aligned / ⚠️ Divergent (requires justification)
-
-       ---
-
-       ## Reuse Decision (CRITICAL)
-
-       **Original Decision**: {from tasks.md marker}
-       **Validation Status**: {VALID/NEEDS_UPDATE/SHOULD_REUSE}
-
-       ### If REUSE:
-       - **Existing Component**: `{path}` (verified exists)
-       - **How to Wire**: {exact integration steps}
-       - **NO new files should be created**
-
-       ### If EXTEND:
-       - **Base Component**: `{path}` (verified exists)
-       - **Extension Point**: {method/hook/interface to use}
-       - **New Capability**: {what to add}
-
-       ### If REFACTOR:
-       - **Target Component**: `{path}` (verified exists)
-       - **Refactoring Goal**: {what to change}
-       - **Affected Usages**: {list of files that use this component}
-
-       ### If NEW:
-       - **Justification**: {why no existing code works}
-       - **Similar Pattern to Follow**: `{path}` for reference
-
-       ---
-
-       ## Codebase Impact Analysis
-
-       ### Files to Create (only for [NEW] tasks)
-       - `{path}` - {purpose}
-
-       ### Files to Modify
-       - `{path}:{line}` - {what changes}
-
-       ### Dependencies
-       - **Imports**: {list}
-       - **Services**: {list}
-       - **Data Models**: {list}
-
-       ---
-
-       ## Implementation Approach
-
-       ### Existing Patterns to Follow
-       **Reference**: `{file:line}`
-       **Why**: {explanation}
-
-       ### Implementation Steps
-       1. {step}
-       2. {step}
-       3. {step}
-
-       ### Gotchas
-       - {gotcha}
-
-       ---
-
-       ## Related Tasks
-       **Depends On**: T{numbers}
-       **Blocks**: T{numbers}
-       **Can Run In Parallel With**: T{numbers}
-
-       ---
-
-       ## Estimated Complexity
-       **Complexity**: {Simple/Moderate/Complex}
-       **Estimated Time**: {5min/15min/30min/1h/2h}
-       **Risk Level**: {Low/Medium/High}
-
-       ---TASK_SEPARATOR---
-
-       Deliverable: Return ALL task plans separated by ---TASK_SEPARATOR---
-       ```
-
-    b. **Parse and write individual plan files**:
-       - Split agent response by "---TASK_SEPARATOR---"
-       - For each task plan section:
-         * Extract task ID from "# Task Plan: T{number}"
-         * Sanitize description for filename (lowercase, hyphens, max 50 chars)
-         * Create task-plans/ directory if needed
-         * Write to `task-plans/T{number}-{sanitized-description}.md`
-         * Log: "✅ T{number}: Plan created"
-
-    c. **Update tasks.md with plan references**:
-       - For each planned task, append: `[📋 Plan](task-plans/T{number}-{filename}.md)`
-       - Example: `- [ ] T004 [P] Create JobType enum... [📋 Plan](task-plans/T004-create-jobtype-enum.md)`
-
-    d. **Group completion log**:
-       - Show: "✅ Group '{group_name}': {count} plans created"
-
-11. **Phase completion**:
-    - After all tasks in current phase are planned
-    - Show summary: "✅ Phase {N} breakdown complete: {count} task plans created"
-    - List all plan files created in this phase
-
-11. **Ask about next phase**:
-    - Check if there are more phases with incomplete tasks
-    - If yes: Show "Phase {N} complete. Continue with Phase {N+1}: {Name}? (yes/no/summary)"
-    - If no: Show "All phases complete! Generating final summary..."
-    - **STOP and wait for user response**
-    - If "yes", go back to Phase 1 step 7 for next incomplete phase
-    - If "no" or "summary", proceed to Phase 4
+   - Show summary with count of plans created and list of plan files
+   - Check for more phases with incomplete tasks
+   - If yes: "Phase {N} complete. Continue with Phase {N+1}: {Name}? (yes/no/summary)"
+   - If no: "All phases complete! Generating final summary..."
+   - Stop and wait for user response. If "yes", loop back to Phase 2 step 1 for next phase. Otherwise proceed to Phase 4.
 
 ### Phase 4: Final Summary
 
-12. **Generate comprehensive summary**:
-    ```
-    🎯 SpecKit Breakdown Summary
+1. **Generate comprehensive summary**:
 
-    Feature: {feature-name}
+   ```text
+   SpecKit Breakdown Summary — {feature-name}
 
-    ## Phases Processed
+   ## Phases Processed
+   Phase {N}: {name}
+   - Tasks planned: {x}/{total}
+   - Complexity: Simple ({n}), Moderate ({n}), Complex ({n})
+   - Files to create/modify: {n}/{n}
 
-    Phase 2: Foundational
-    - Tasks planned: 42/47
-    - Complexity breakdown:
-      * Simple: 15 tasks (~1-2 hours)
-      * Moderate: 20 tasks (~4-6 hours)
-      * Complex: 7 tasks (~3-5 hours)
-    - Files to create: 25
-    - Files to modify: 12
+   ## Overall Statistics
+   - Total plans created: {n}
+   - Estimated time: {range}
+   - Critical path: {key task IDs}
+   - Phases remaining: {n}
 
-    Phase 3: User Story 1
-    - Tasks planned: 4/4
-    - Complexity breakdown:
-      * Simple: 2 tasks (~30 minutes)
-      * Moderate: 2 tasks (~1 hour)
-    - Files to create: 2
-    - Files to modify: 3
+   ## Next Steps
+   1. Review plans in task-plans/
+   2. Run /specforge.implement to execute
+   3. Plans guide implementation with exact steps and references
 
-    ## Overall Statistics
-
-    - Total task plans created: 46
-    - Estimated implementation time: 8-13 hours
-    - Key dependencies identified: 12
-    - Critical path tasks: T004, T018, T029, T036
-    - Phases remaining: 6 (Phase 4-9)
-
-    ## Next Steps
-
-    1. Review task plans in task-plans/ directory
-    2. Run /specforge.implement to execute implementation
-    3. Plans will guide implementation with exact steps and references
-
-    ## Key Patterns Discovered
-
-    - {pattern 1 from research}
-    - {pattern 2 from research}
-    - {pattern 3 from research}
-
-    ## Gotchas to Watch
-
-    - {gotcha 1 from multiple plans}
-    - {gotcha 2 from constitution}
-    ```
+   ## Key Patterns and Gotchas
+   - {patterns discovered}
+   - {gotchas to watch}
+   ```
 
 ## Operating Principles
 
-### Architecture Consistency (CRITICAL)
+**Architecture consistency drives quality.** Plans follow established patterns from architecture-registry.md because architectural drift across features creates compounding maintenance cost. If a task cannot follow a pattern, flag it with justification rather than silently diverging.
 
-The primary goal is to maintain **architectural consistency** across all features:
+**Validate before planning.** Components marked for reuse may have changed since the plan was written. The researcher phase catches mismatches between plan assumptions and codebase reality, preventing wasted implementation effort.
 
-- **Follow established patterns**: Plans MUST use patterns from architecture-registry.md
-- **Use specified technologies**: Don't introduce alternative libs/tools without justification
-- **Follow conventions**: Put files in standard locations with standard names
-- **Avoid anti-patterns**: Never repeat mistakes documented in registry
-- **Flag divergence**: If a task cannot follow a pattern, document why and get approval
+**Reuse classification determines approach.** REUSE tasks wire up existing code (no new files). EXTEND tasks add to existing components at identified extension points. REFACTOR tasks modify existing code with awareness of all affected usages. Only NEW tasks create files, and only after confirming no reusable alternative exists.
 
-### Reduce Uncertainty
+**Phase-by-phase, group-by-group.** Planning all phases at once produces stale plans. Working in groups (by user story, domain, or directory) gives coherent plans with shared context while keeping agent calls efficient.
 
-The secondary goal is to **reduce uncertainty** between the technical plan and actual implementation:
-
-- **Validate assumptions**: Check that components marked for reuse still exist and work as expected
-- **Discover gaps**: Identify mismatches between plan assumptions and codebase reality
-- **Update decisions**: Correct reuse decisions if the codebase has changed
-- **Fine-tune approach**: Provide exact file paths, line numbers, and code snippets
-
-### Reuse-First Implementation
-
-- **Honor reuse decisions**: Tasks marked [REUSE] must NOT create new files
-- **Extend carefully**: Tasks marked [EXTEND] must identify exact extension points
-- **Refactor safely**: Tasks marked [REFACTOR] must list all affected code
-- **Justify new code**: Tasks marked [NEW] must confirm no reusable alternative exists
-
-### Progressive Execution
-
-- **Phase-by-phase**: Work on current phase only, not all phases at once
-- **Group-based planning**: Plan tasks in logical groups (by topic, user story, or domain)
-- **Batch updates**: Update tasks.md after each group is planned
-- **Context-aware**: Use results from previous tasks to inform current plans
-- **Efficient token usage**: One agent call per group instead of per task
-
-### Framework Agnosticism
-
-- **Never assume**: Don't hardcode Scala, React, or any framework patterns
-- **Always discover**: Use researcher agent to find actual patterns in codebase
-- **Use what exists**: Base plans on existing code, not assumptions
-- **Adapt to context**: Plans should reflect actual project architecture
-
-### Agent Coordination
-
-- **Researcher for discovery**: Use sonnet model for codebase analysis (REUSE validation requires judgment)
-- **Planner for creation**: Use sonnet by default, escalate to opus for critical/complex groups
-- **Model selection**: Adaptive - sonnet handles most cases, opus for security/auth/10+ tasks/cross-domain
-- **Group execution**: Run researcher once per phase, planner once per task group
-- **Context passing**: Pass research findings to planner for informed planning
-
-### Quality Standards
-
-- **Actionable plans**: Every plan must have exact steps, file paths, and code snippets
-- **Complete references**: Include file:line for all patterns and snippets
-- **Use previous results**: Check *-result.md files to learn from actual implementation
-- **Prevent duplication**: Skip tasks that already have plans
-- **Track dependencies**: Map task relationships accurately
+**Discover, don't assume.** The researcher agent finds actual patterns in the codebase rather than assuming any particular framework. Plans are based on what exists, not what might exist.
 
 ## Error Handling
 
 - **No tasks.md**: Error and suggest running `/specforge.tasks` first
 - **No incomplete tasks**: Inform user all tasks are already planned
 - **Agent failure**: Log error, skip group, continue with next group
-- **Parse failure**: If ---TASK_SEPARATOR--- parsing fails, attempt to extract plans by # Task Plan: headers
+- **Parse failure**: If `---TASK_SEPARATOR---` parsing fails, attempt extraction by `# Task Plan:` headers
 - **File write error**: Report error, suggest manual creation
 - **User cancellation**: Save progress, generate summary of work done so far
-
-## Important Notes
-
-- **LOAD ARCHITECTURE REGISTRY** - always load /memory/architecture-registry.md before planning
-- **FOLLOW ESTABLISHED PATTERNS** - plans MUST use patterns from registry
-- **NEVER process all phases at once** - work on current phase only
-- **VALIDATE REUSE DECISIONS** - always check if planned reuse is still valid before planning
-- **REDUCE UNCERTAINTY** - the goal is to close gaps between plan and reality
-- **GROUP tasks by topic** - plan related tasks together for coherence and efficiency
-- **UPDATE tasks.md after each group** - not after each individual task
-- **USE result files** - learn from previous implementations
-- **BE AGNOSTIC** - discover patterns, don't assume frameworks
-- **USE AGENTS** - researcher for analysis and reuse validation, planner for groups
-- **FOCUS ON CURRENT PHASE** - don't try to plan everything upfront
-- **PARSE carefully** - split agent response by ---TASK_SEPARATOR--- to extract individual plans
-- **HONOR REUSE MARKERS** - [REUSE] tasks must NOT create new files, [NEW] must justify why
-- **FLAG PATTERN VIOLATIONS** - if a task cannot follow established patterns, flag and justify
 
 ## Context
 

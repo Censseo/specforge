@@ -6,7 +6,7 @@ semantic_anchors:
   - Dependency Graph      # DAG for task ordering, critical path
   - Kanban                # Visualize flow, limit WIP, pull system
   - INVEST Criteria       # Tasks should be Independent, Valuable, Estimable
-handoffs: 
+handoffs:
   - label: Analyze For Consistency
     agent: speckit.analyze
     prompt: Run a project analysis for consistency
@@ -26,7 +26,7 @@ scripts:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Outline
 
@@ -37,64 +37,43 @@ You **MUST** consider the user input before proceeding (if not empty).
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
    - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
-   - Note: Not all projects have all documents. Generate tasks based on what's available.
+   - Not all projects have all documents. Generate tasks based on what's available.
 
-3. **Load source idea (CRITICAL for alignment)**:
-   - Check plan.md for "Idea Technical Alignment" section → extract source idea path
-   - If not found, check spec.md for `**Source**:` or `**Parent Idea**:` links
-   - If still not found, search `ideas/` directory for matching idea
-   - Load the idea.md and any feature files
-   - Extract **Technical Hints** and **Constraints** sections
+3. **Load source idea for alignment**:
+   - Check plan.md for "Idea Technical Alignment" section, then spec.md for `**Source**:` or `**Parent Idea**:` links, then `ideas/` directory
+   - Load the idea.md and extract **Technical Hints** and **Constraints** sections
    - Store as IDEA_TECHNICAL_REQUIREMENTS for validation in step 4
 
-4. **Validate alignment with source idea (BEFORE generating tasks)**:
+4. **Validate alignment with source idea** (before generating tasks):
 
-   CRITICAL: Before generating any tasks, verify alignment with IDEA_TECHNICAL_REQUIREMENTS:
+   <alignment_checks>
+   a. **Extract technical specifics from idea**: commands/CLI instructions (with order), specific tools/libraries/versions, step-by-step procedures, configuration patterns, integration sequences
 
-   a. **Extract technical specifics from idea**:
-      - Commands or CLI instructions to execute (with order)
-      - Specific tools, libraries, or versions mentioned
-      - Step-by-step technical procedures
-      - Configuration patterns or approaches
-      - Integration sequences or protocols
+   b. **Cross-check with plan.md**: verify plan's "Idea Technical Alignment" section exists; if plan has divergences, carry them to tasks (not ignore them); if plan lacks the section, perform alignment check now
 
-   b. **Cross-check with plan.md**:
-      - Verify plan's "Idea Technical Alignment" section exists
-      - If plan has divergences, they MUST be carried to tasks (not ignored)
-      - If plan is missing alignment section, perform alignment check now
+   c. **Pre-generation checklist** — for each technical requirement in idea:
+      - Is it reflected in plan.md?
+      - Will the generated tasks implement it correctly?
+      - Is the execution order preserved?
+      - Are specific commands/tools preserved (not substituted)?
 
-   c. **Pre-generation checklist**:
-      ```
-      For each technical requirement in idea:
-      □ Is it reflected in plan.md?
-      □ Will the generated tasks implement it correctly?
-      □ Is the execution order preserved?
-      □ Are specific commands/tools preserved (not substituted)?
-      ```
-
-   d. **STOP if misalignment detected**:
-      - If idea specifies technical approach X but plan uses approach Y
-      - Report the divergence to user BEFORE generating tasks
-      - Ask for explicit confirmation to proceed with plan's approach
-      - Document decision in tasks.md header
+   d. **Stop on misalignment**: if idea specifies approach X but plan uses approach Y, report the divergence to user before generating tasks, ask for explicit confirmation, and document the decision in tasks.md header
+   </alignment_checks>
 
 5. **Execute task generation workflow**:
-   - Load plan.md and extract tech stack, libraries, project structure
-   - Load spec.md and extract user stories with their priorities (P1, P2, P3, etc.)
-   - If data-model.md exists: Extract entities and map to user stories
-   - If contracts/ exists: Map endpoints to user stories
-   - If research.md exists:
-     - Extract decisions for setup tasks
-     - **Extract Existing Codebase Analysis** → reuse decisions
-     - **Extract reuse/extend/new markers** for each component
-   - **Map IDEA_TECHNICAL_REQUIREMENTS to specific tasks** (see Task Generation Rules)
-   - **Map REUSE DECISIONS to specific tasks** (see Reuse Task Rules below)
-   - Generate tasks organized by user story (see Task Generation Rules below)
+   - Load plan.md → extract tech stack, libraries, project structure
+   - Load spec.md → extract user stories with priorities (P1, P2, P3, etc.)
+   - If data-model.md exists: extract entities and map to user stories
+   - If contracts/ exists: map endpoints to user stories
+   - If research.md exists: extract decisions for setup tasks, existing codebase analysis, and reuse/extend/new markers per component
+   - Map IDEA_TECHNICAL_REQUIREMENTS to specific tasks (see Task Generation Rules)
+   - Map reuse decisions to specific tasks (see Reuse Task Rules)
+   - Generate tasks organized by user story
    - Generate dependency graph showing user story completion order
    - Create parallel execution examples per user story
-   - Validate task completeness (each user story has all needed tasks, independently testable)
-   - **Validate technical alignment** (each idea requirement maps to at least one task)
-   - **Validate reuse alignment** (reuse decisions from research.md are reflected in tasks)
+   - Validate: each user story has all needed tasks and is independently testable
+   - Validate: each idea requirement maps to at least one task
+   - Validate: reuse decisions from research.md are reflected in tasks
 
 6. **Generate tasks.md**: Use `templates/tasks-template.md` as structure, fill with:
    - Correct feature name from plan.md
@@ -103,188 +82,134 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 3+: One phase per user story (in priority order from spec.md)
    - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
    - Final Phase: Polish & cross-cutting concerns
-   - All tasks must follow the strict checklist format (see Task Generation Rules below)
+   - All tasks follow the strict checklist format (see Task Generation Rules)
    - Clear file paths for each task
-   - Dependencies section showing story completion order
-   - Parallel execution examples per story
-   - Implementation strategy section (MVP first, incremental delivery)
-   - **Idea Technical Traceability section** (see below)
+   - Dependencies section, parallel execution examples, implementation strategy
+   - Idea Technical Traceability section and Reuse Traceability section (see below)
 
 7. **Report**: Output path to generated tasks.md and summary:
-   - Total task count
-   - Task count per user story
+   - Total task count and task count per user story
    - Parallel opportunities identified
    - Independent test criteria for each story
    - Suggested MVP scope (typically just User Story 1)
-   - Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
-   - **Idea alignment status**: Confirm all technical requirements from idea are mapped to tasks
-   - **Reuse summary**: Count of REUSE/EXTEND/REFACTOR/NEW tasks
-   - **Reuse ratio**: If NEW > 50%, flag for review
+   - Format validation: confirm all tasks follow checklist format
+   - Idea alignment status: confirm all technical requirements from idea are mapped
+   - Reuse summary: count of REUSE/EXTEND/REFACTOR/NEW tasks; flag if NEW > 50%
 
 Context for task generation: {ARGS}
 
-The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
+The tasks.md should be immediately executable — each task must be specific enough that an LLM can complete it without additional context.
 
 ## Task Generation Rules
 
-**CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
+Tasks are organized by user story so each story can be implemented and tested independently.
 
-**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
+Tests are optional: only generate test tasks if explicitly requested in the feature specification or by the user (e.g. TDD approach).
 
-### Checklist Format (REQUIRED)
+### Checklist Format
 
-Every task MUST strictly follow this format:
+Every task follows this format — deviations break downstream automation:
 
 ```text
 - [ ] [TaskID] [P?] [Story?] Description with file path
 ```
 
-**Format Components**:
+<format_components>
 
-1. **Checkbox**: ALWAYS start with `- [ ]` (markdown checkbox)
-2. **Task ID**: Sequential number (T001, T002, T003...) in execution order
-3. **[P] marker**: Include ONLY if task is parallelizable (different files, no dependencies on incomplete tasks)
-4. **[Story] label**: REQUIRED for user story phase tasks only
-   - Format: [US1], [US2], [US3], etc. (maps to user stories from spec.md)
-   - Setup phase: NO story label
-   - Foundational phase: NO story label  
-   - User Story phases: MUST have story label
-   - Polish phase: NO story label
+1. **Checkbox**: `- [ ]` (markdown checkbox)
+2. **Task ID**: Sequential (T001, T002, T003...) in execution order
+3. **[P] marker**: Only if task is parallelizable (different files, no dependencies on incomplete tasks)
+4. **[Story] label**: [US1], [US2], etc. — required for user story phase tasks only (not Setup, Foundational, or Polish phases)
 5. **Description**: Clear action with exact file path
 
-**Examples**:
+</format_components>
 
-- ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`
-- ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
-- ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
-- ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
-- ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
-- ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
-- ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
-- ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+**Correct**:
+
+- `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
+- `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
+
+**Wrong** (these break parsing):
+
+- `- [ ] Create User model` — missing ID and Story label
+- `T001 [US1] Create model` — missing checkbox
 
 ### Task Organization
 
-1. **From User Stories (spec.md)** - PRIMARY ORGANIZATION:
+1. **From User Stories (spec.md)** — primary organization:
    - Each user story (P1, P2, P3...) gets its own phase
-   - Map all related components to their story:
-     - Models needed for that story
-     - Services needed for that story
-     - Endpoints/UI needed for that story
-     - If tests requested: Tests specific to that story
+   - Map all related components (models, services, endpoints/UI, tests if requested) to their story
    - Mark story dependencies (most stories should be independent)
 
-2. **From Contracts**:
-   - Map each contract/endpoint → to the user story it serves
-   - If tests requested: Each contract → contract test task [P] before implementation in that story's phase
+2. **From Contracts**: map each endpoint to its user story; if tests requested, add contract test task [P] before implementation
 
-3. **From Data Model**:
-   - Map each entity to the user story(ies) that need it
-   - If entity serves multiple stories: Put in earliest story or Setup phase
-   - Relationships → service layer tasks in appropriate story phase
+3. **From Data Model**: map each entity to its user story(ies); if entity serves multiple stories, put in earliest story or Setup phase
 
-4. **From Setup/Infrastructure**:
-   - Shared infrastructure → Setup phase (Phase 1)
-   - Foundational/blocking tasks → Foundational phase (Phase 2)
-   - Story-specific setup → within that story's phase
+4. **From Setup/Infrastructure**: shared infrastructure → Setup (Phase 1); blocking tasks → Foundational (Phase 2); story-specific setup → within that story's phase
 
 ### Phase Structure
 
 - **Phase 1**: Setup (project initialization)
-- **Phase 2**: Foundational (blocking prerequisites - MUST complete before user stories)
+- **Phase 2**: Foundational (blocking prerequisites — must complete before user stories)
 - **Phase 3+**: User Stories in priority order (P1, P2, P3...)
   - Within each story: Tests (if requested) → Models → Services → Endpoints → Integration
   - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
 
-### Reuse Task Rules (CRITICAL)
+### Reuse Task Rules
 
-Tasks MUST reflect the reuse decisions from research.md. Use these markers in task descriptions:
+Tasks reflect reuse decisions from research.md — this avoids rebuilding what already exists.
 
 **Task Type Markers**:
-- `[REUSE]` - Use existing component as-is (just wire it up)
-- `[EXTEND]` - Add capabilities to existing component
-- `[REFACTOR]` - Modify existing component for broader use
-- `[NEW]` - Create new component (must be justified in research.md)
+
+- `[REUSE]` — use existing component as-is (wire it up)
+- `[EXTEND]` — add capabilities to existing component
+- `[REFACTOR]` — modify existing component for broader use
+- `[NEW]` — create new component (must be justified in research.md)
 
 **Examples**:
 
-- ✅ `- [ ] T005 [P] [US1] [REUSE] Wire existing AuthService for user validation`
-- ✅ `- [ ] T008 [US2] [EXTEND] Add export method to existing ReportService in src/services/report.py`
-- ✅ `- [ ] T012 [US3] [REFACTOR] Generalize NotificationService to support SMS in src/services/notification.py`
-- ✅ `- [ ] T015 [P] [US4] [NEW] Create PaymentGateway integration in src/services/payment.py`
+- `- [ ] T005 [P] [US1] [REUSE] Wire existing AuthService for user validation`
+- `- [ ] T015 [P] [US4] [NEW] Create PaymentGateway integration in src/services/payment.py`
 
-**Reuse Task Requirements**:
+**Per-marker guidance**:
 
-1. **For [REUSE] tasks**:
-   - Reference the existing component path
-   - Describe how to integrate/wire it
-   - No new file creation needed
+- **[REUSE]**: Reference existing component path; describe integration; no new file creation
+- **[EXTEND]**: Reference component to extend; describe new capability and extension approach
+- **[REFACTOR]**: Reference component to refactor; describe goal; list affected code; include task to update existing usages
+- **[NEW]**: Reference research.md justification; explain why existing code couldn't be used; follow existing codebase patterns
 
-2. **For [EXTEND] tasks**:
-   - Reference the existing component to extend
-   - Describe the new capability to add
-   - Specify the extension approach (new method, parameter, etc.)
+### Idea Technical Traceability
 
-3. **For [REFACTOR] tasks**:
-   - Reference the existing component to refactor
-   - Describe the refactoring goal
-   - List what other code might be affected
-   - Include task to update existing usages if needed
-
-4. **For [NEW] tasks**:
-   - Must reference research.md justification
-   - Explain why existing code couldn't be used
-   - Follow existing patterns from codebase
-
-### Idea Technical Traceability (REQUIRED)
-
-At the end of tasks.md, include a traceability section that maps each technical requirement from the source idea to specific tasks:
+Include at the end of tasks.md. This section proves every idea requirement has a corresponding task — missing mappings mean lost requirements.
 
 ```markdown
 ## Idea Technical Traceability
 
 **Source Idea**: [path to idea.md]
 
-### Technical Requirements Mapping
-
 | Idea Requirement | Task(s) | Status |
 |------------------|---------|--------|
-| [Command/tool/approach from idea] | T001, T005 | ✅ Mapped |
-| [Execution order requirement] | T003 → T004 → T005 | ✅ Order preserved |
-| [Specific library/version] | T002 | ✅ Mapped |
-
-### Execution Order Preservation
-
-If the idea specified a particular execution order:
-
-```
-Idea specified: Step A → Step B → Step C
-Tasks implement: T003 (Step A) → T007 (Step B) → T012 (Step C)
-Order preserved: ✅ Yes
-```
+| [Command/tool/approach from idea] | T001, T005 | Mapped |
+| [Execution order requirement] | T003 → T004 → T005 | Order preserved |
 
 ### Divergences from Idea (if any)
 
 | Idea Specified | Task Implements | Justification |
 |----------------|-----------------|---------------|
-| [original approach] | [different approach] | [documented reason from plan.md] |
+| [original approach] | [different approach] | [reason from plan.md] |
 ```
 
-**CRITICAL**: If any technical requirement from the idea is NOT mapped to a task:
-1. Add the missing task(s)
-2. Or document why it was intentionally omitted (with user confirmation)
+If any technical requirement from the idea is not mapped to a task, either add the missing task(s) or document why it was intentionally omitted (with user confirmation).
 
-### Reuse Traceability (REQUIRED)
+### Reuse Traceability
 
-After the Idea Technical Traceability section, include a reuse summary:
+Include after Idea Technical Traceability. This section tracks code reuse health — a high NEW ratio signals that existing code may not have been properly explored.
 
 ```markdown
 ## Reuse Traceability
 
 **Source**: research.md (Existing Codebase Analysis)
-
-### Reuse Summary
 
 | Type | Count | Tasks |
 |------|-------|-------|
@@ -293,25 +218,10 @@ After the Idea Technical Traceability section, include a reuse summary:
 | REFACTOR | X | T015, ... |
 | NEW | X | T020, T021, ... |
 
-### Reuse Decisions
-
 | Component | Decision | Task | Justification |
 |-----------|----------|------|---------------|
 | AuthService | REUSE | T005 | Existing auth fits requirements |
-| ReportService | EXTEND | T008 | Add export capability |
-| NotificationService | REFACTOR | T012 | Generalize for SMS support |
 | PaymentGateway | NEW | T020 | No existing payment integration |
-
-### New Code Justifications
-
-For each [NEW] task, reference the research.md justification:
-
-| Task | Component | Why Not Reuse? |
-|------|-----------|----------------|
-| T020 | PaymentGateway | No existing payment code; external API integration required |
 ```
 
-**CRITICAL**:
-- More [REUSE] and [EXTEND] tasks than [NEW] tasks indicates good code reuse
-- Every [NEW] task must have explicit justification from research.md
-- If ratio of [NEW] > 50%, reconsider if existing code was properly explored
+Every [NEW] task needs explicit justification from research.md. More [REUSE]/[EXTEND] than [NEW] indicates good code reuse. If NEW > 50%, reconsider whether existing code was properly explored.

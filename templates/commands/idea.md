@@ -25,21 +25,22 @@ handoffs:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Purpose
 
 > **Activated Frameworks**: Double Diamond for discovery (diverge then converge), Jobs-to-Be-Done for user outcomes, User Story Mapping for feature decomposition, Cynefin for complexity assessment.
 
-The `/specforge.idea` command transforms a raw, often vague idea into a comprehensive vision document AND decomposes complex ideas into smaller, manageable features. This is the **Discover** phase of Double Diamond - divergent exploration before convergent specification.
+The `/specforge.idea` command transforms a raw idea into a comprehensive vision document and decomposes complex ideas into smaller, manageable features. This is the **Discover** phase of Double Diamond.
 
 **Workflow position**: `idea` → `specify` (per feature) → `clarify` → `plan` → `tasks` → `implement`
 
-**Key principle**: Apply YAGNI - complex ideas should NOT be specified as a single monolithic feature. Use User Story Mapping to break them into focused features that can be specified, planned, and implemented independently.
+**Key principle**: Apply YAGNI - complex ideas should not be specified as a single monolithic feature. Break them into focused features that can be specified, planned, and implemented independently.
 
 ## Outline
 
 The text the user typed after `/specforge.idea` is the raw idea. Your goal is to:
+
 1. Enrich it through structured exploration
 2. Assess complexity and identify natural boundaries
 3. Decompose into features if complexity warrants it
@@ -50,49 +51,21 @@ Conduct a focused discovery session with **5-7 questions maximum** across these 
 
 #### 1.1 Problem & Context Discovery
 
-First, acknowledge the idea and identify what's missing. Then ask questions ONE AT A TIME from these categories:
+Acknowledge the idea and identify what's missing. Ask questions ONE AT A TIME from:
 
-**Problem Space** (1-2 questions):
-- What problem does this solve? Who experiences this problem today?
-- What triggers the need for this solution? (pain point, opportunity, mandate)
-- How is this problem currently addressed? (workarounds, competitors, manual processes)
-
-**Users & Stakeholders** (1-2 questions):
-- Who are the primary users? What are their roles/personas?
-- Are there secondary users or stakeholders affected?
-- What's the user's technical proficiency level?
-
-**Goals & Success** (1-2 questions):
-- What does success look like? How would you measure it?
-- What's the MVP vs. the full vision?
-- What's the timeline or urgency?
-
-**Constraints & Context** (1-2 questions):
-- Are there technical constraints? (platform, integrations, existing systems)
-- Are there business constraints? (budget, team size, compliance)
-- What's explicitly OUT of scope?
+- **Problem Space** (1-2 questions): What problem does this solve? Who has it? What triggers the need? How is it addressed today?
+- **Users & Stakeholders** (1-2 questions): Primary users and roles? Secondary stakeholders? Technical proficiency?
+- **Goals & Success** (1-2 questions): What does success look like? MVP vs. full vision? Timeline?
+- **Constraints & Context** (1-2 questions): Technical constraints? Business constraints? What's out of scope?
 
 #### 1.2 Question Format
 
 For each question:
 
-1. **Provide context** for why you're asking (1 sentence)
-2. **Ask the question** clearly
-3. **Offer suggestions** when helpful:
-
-   **Suggested answer**: [Your best guess based on the idea] - [brief reasoning]
-
-   Or for choices:
-
-   | Option | Description |
-   |--------|-------------|
-   | A | [Option description] |
-   | B | [Option description] |
-   | C | [Option description] |
-
-   Reply with an option letter, "yes" to accept the suggestion, or your own answer.
-
-4. **Accept short answers**: User can reply briefly; don't require long explanations
+1. Provide context for why you're asking (1 sentence)
+2. Ask the question clearly
+3. Offer suggestions when helpful - either a **Suggested answer** with reasoning, or a table of options (A/B/C) the user can pick from
+4. Accept short answers - don't require long explanations
 
 #### 1.3 Adaptive Questioning
 
@@ -103,32 +76,28 @@ For each question:
 
 ### Phase 2: Complexity Analysis
 
-After gathering context, assess whether the idea needs decomposition:
+After gathering context, assess whether the idea needs decomposition.
 
 #### 2.1 Complexity Indicators
 
-Check for these complexity signals:
-
-| Signal | Description | Threshold |
-|--------|-------------|-----------|
-| **Multiple user types** | Different personas with distinct workflows | > 2 primary users |
-| **Independent capabilities** | Features that could work alone | > 3 distinct capabilities |
-| **Phased delivery** | Natural MVP → v2 → v3 progression | > 2 phases mentioned |
-| **Domain boundaries** | Different technical/business domains | > 1 domain |
-| **Integration points** | External systems or APIs | > 2 integrations |
-| **Data entities** | Distinct data models with relationships | > 4 entities |
+| Signal | Threshold |
+| ------ | --------- |
+| **Multiple user types** | > 2 primary users |
+| **Independent capabilities** | > 3 distinct capabilities |
+| **Phased delivery** | > 2 phases mentioned |
+| **Domain boundaries** | > 1 domain |
+| **Integration points** | > 2 integrations |
+| **Data entities** | > 4 entities |
 
 #### 2.2 Complexity Score
 
-Calculate a complexity score (0-10):
-
-```
+```text
 Score = (user_types × 1) + (capabilities × 1.5) + (phases × 1) +
         (domains × 2) + (integrations × 1) + (entities × 0.5)
 ```
 
 | Score | Complexity | Action |
-|-------|------------|--------|
+| ----- | ---------- | ------ |
 | 0-3 | Simple | Single `idea.md`, no decomposition |
 | 4-6 | Moderate | `idea.md` + 2-3 feature files |
 | 7-10 | Complex | `idea.md` + 4-6 feature files |
@@ -136,71 +105,45 @@ Score = (user_types × 1) + (capabilities × 1.5) + (phases × 1) +
 
 #### 2.3 Identify Feature Boundaries
 
-If complexity score ≥ 4, identify natural feature boundaries:
+If complexity score >= 4, identify natural feature boundaries using one of these lenses:
 
-1. **By User Journey**: Group capabilities by user workflow stages
-   - Example: "Onboarding", "Core Usage", "Administration"
-
-2. **By Domain**: Separate business domains
-   - Example: "Authentication", "Payments", "Notifications"
-
-3. **By Priority**: Separate MVP from future phases
-   - Example: "Core Features (MVP)", "Advanced Features", "Nice-to-haves"
-
+1. **By User Journey**: Group by workflow stages (e.g., "Onboarding", "Core Usage", "Administration")
+2. **By Domain**: Separate business domains (e.g., "Authentication", "Payments", "Notifications")
+3. **By Priority**: MVP vs. future phases
 4. **By Independence**: Features that can be built/deployed independently
-   - Example: "User Management", "Reporting", "Integrations"
 
-**Feature Naming**: Each feature should have:
-- A clear, action-oriented name (2-4 words)
-- A one-sentence description
-- Identified dependencies on other features
+Each feature needs: an action-oriented name (2-4 words), a one-sentence description, and identified dependencies.
 
 ### Phase 3: Document Generation
 
-After gathering context and analyzing complexity, generate the documents:
-
 #### 3.1 Create Idea Directory
 
-Determine a short name (2-4 words) for the idea and create the directory structure:
-
 ```bash
-# Find next available idea number
 NEXT_NUM=$(ls -d ideas/[0-9][0-9][0-9]-* 2>/dev/null | sed 's/.*\/\([0-9]*\)-.*/\1/' | sort -n | tail -1 | awk '{print $1+1}')
 NEXT_NUM=${NEXT_NUM:-1}
 IDEA_NUM=$(printf "%03d" $NEXT_NUM)
-
-# Create idea directory with features subdirectory
 mkdir -p "ideas/${IDEA_NUM}-<short-name>/features"
 ```
 
 **Directory structure**:
 
-```
+```text
 ideas/###-<short-name>/
 ├── idea.md                    # High-level vision (always created)
 └── features/                  # Feature files (if complexity ≥ 4)
-    ├── 01-<feature-name>.md   # First feature
-    ├── 02-<feature-name>.md   # Second feature
-    └── ...
+    ├── 01-<feature-name>.md
+    └── 02-<feature-name>.md
 
 .speckit/                              # Created later by /specforge.specify
 ├── ###-<short-name>/                  # Spec for simple idea (complexity < 4)
-│   ├── spec.md
-│   ├── plan.md
-│   └── ...
-└── ###-01-<feature-name>/             # Spec for feature 1 (complexity ≥ 4)
-    ├── spec.md
-    ├── plan.md
-    └── ...
+└── ###-01-<feature-name>/             # Spec per feature (complexity ≥ 4)
 ```
-
-**Note**: The `/specforge.specify` command will create the `.speckit/###-<name>/` directory structure when you specify the idea or each feature.
 
 #### 3.2 Write Idea Document
 
 Create `ideas/###-<short-name>/idea.md` using this structure:
 
-```markdown
+````markdown
 # Idea: [CONCISE TITLE]
 
 **Created**: [DATE]
@@ -220,7 +163,7 @@ Create `ideas/###-<short-name>/idea.md` using this structure:
 [How users currently deal with this - workarounds, pain points, gaps]
 
 ### Why Now?
-[What triggers the need for this solution - pain point, opportunity, mandate]
+[What triggers the need for this solution]
 
 ## Target Users
 
@@ -239,7 +182,6 @@ Create `ideas/###-<short-name>/idea.md` using this structure:
 
 ### Success Indicators
 - [How you'll know this succeeded - quantitative if possible]
-- [User behavior or business metric changes expected]
 
 ### MVP Definition
 [What's the minimum viable version that delivers value?]
@@ -249,7 +191,6 @@ Create `ideas/###-<short-name>/idea.md` using this structure:
 ### In Scope (MVP)
 - [Feature/capability 1]
 - [Feature/capability 2]
-- [Feature/capability 3]
 
 ### In Scope (Future)
 - [Features for later phases]
@@ -284,7 +225,7 @@ Create `ideas/###-<short-name>/idea.md` using this structure:
 ## Features Overview
 
 <!--
-  This section is populated when complexity analysis identifies multiple features.
+  Populated when complexity analysis identifies multiple features.
   Leave empty for simple ideas (complexity score < 4).
 -->
 
@@ -294,27 +235,23 @@ Create `ideas/###-<short-name>/idea.md` using this structure:
 
 | # | Feature | Description | Priority | Dependencies | Status |
 |---|---------|-------------|----------|--------------|--------|
-| 01 | [feature-name] | [One sentence description] | P1/MVP | None | 🔲 Not specified |
-| 02 | [feature-name] | [One sentence description] | P1/MVP | 01 | 🔲 Not specified |
-| 03 | [feature-name] | [One sentence description] | P2 | 01, 02 | 🔲 Not specified |
+| 01 | [feature-name] | [One sentence] | P1/MVP | None | 🔲 Not specified |
+| 02 | [feature-name] | [One sentence] | P1/MVP | 01 | 🔲 Not specified |
 
 **Status Legend**: 🔲 Not specified → 📝 Specified → ✅ Implemented
 
 ### Feature Dependencies Graph
 
-```
+```text
 [01-core-feature]
     └── [02-dependent-feature]
-         └── [03-another-feature]
-[04-independent-feature]
+[03-independent-feature]
 ```
 
 ### Implementation Order
 
-Recommended order based on dependencies and priority:
 1. **Phase 1 (MVP)**: 01, 02, ...
 2. **Phase 2**: 03, 04, ...
-3. **Phase 3**: ...
 
 ## Open Questions & Risks
 
@@ -327,16 +264,13 @@ Recommended order based on dependencies and priority:
 ## Discovery Notes
 
 ### Session [DATE]
-[Summary of key decisions made during exploration]
-- Q: [Question asked] → A: [Answer given]
 - Q: [Question asked] → A: [Answer given]
 
 ## Technical Hints
 
 <!--
-  IMPORTANT: Capture technical requirements that MUST be preserved
-  throughout specification, planning, and implementation.
-  This section is critical for downstream alignment.
+  Capture technical requirements to preserve through specification,
+  planning, and implementation.
 -->
 
 ### Required Commands/Scripts
@@ -356,15 +290,11 @@ Recommended order based on dependencies and priority:
 ### Implementation Notes
 
 - [Technical note that must be preserved]
-```
+````
 
-#### 3.3 Generate Feature Files (if complexity ≥ 4)
+#### 3.3 Generate Feature Files (if complexity >= 4)
 
-For each identified feature, create a feature file in `ideas/###-<short-name>/features/`:
-
-**File naming**: `##-feature-short-name.md` (e.g., `01-user-authentication.md`)
-
-Use the feature template structure:
+For each identified feature, create `ideas/###-<short-name>/features/##-feature-short-name.md`:
 
 ```markdown
 # Feature: [FEATURE TITLE]
@@ -389,11 +319,9 @@ Use the feature template structure:
 ### This Feature Includes
 - [Capability 1]
 - [Capability 2]
-- [Capability 3]
 
 ### This Feature Does NOT Include
 - [Explicitly excluded - may be in another feature]
-- [Explicitly excluded - out of scope entirely]
 
 ## Key Use Cases
 
@@ -414,11 +342,6 @@ Use the feature template structure:
 - [Feature ##]: [What this feature provides to it]
 
 ## Technical Hints
-
-<!--
-  CRITICAL: Capture technical requirements that MUST be preserved.
-  These will be validated during planning and traced to tasks.
--->
 
 ### Required Commands/Scripts
 
@@ -443,184 +366,54 @@ Use the feature template structure:
 [Any additional context for specification]
 ```
 
-#### 3.5 Validation Checklist
+#### 3.4 Validation Checklist
 
 Before completing, verify:
 
-**For idea.md**:
-- [ ] Vision is clear and compelling (could explain to a stranger)
-- [ ] Problem is well-defined (not solution-first thinking)
-- [ ] Target users are identified with their needs
-- [ ] At least 2-3 concrete use cases sketched
-- [ ] MVP scope is defined and bounded
-- [ ] Out-of-scope items are explicit
-- [ ] Known constraints documented
-- [ ] Success metrics are measurable
-- [ ] Complexity score calculated
-
-**For feature files (if complexity ≥ 4)**:
-- [ ] Each feature has a clear, focused scope
-- [ ] Dependencies between features are documented
-- [ ] No overlap between feature scopes
-- [ ] Implementation order is logical (dependencies respected)
-- [ ] Each feature could be specified independently
+- [ ] Vision is clear; problem is well-defined (not solution-first thinking)
+- [ ] Target users identified with needs; at least 2-3 use cases sketched
+- [ ] MVP scope defined and bounded; out-of-scope items explicit
+- [ ] Success metrics measurable; constraints documented; complexity score calculated
+- [ ] If complexity >= 4: features have focused scopes, documented dependencies, no overlaps, logical order
 
 ### Phase 4: Completion
 
-1. **Save** all documents:
-   - `ideas/###-<short-name>/idea.md` (always)
-   - `ideas/###-<short-name>/features/*.md` (if complexity ≥ 4)
+Save all documents (`idea.md` always, `features/*.md` if complexity >= 4), then report:
 
-2. **Report** completion:
+**For simple ideas (complexity < 4)**: Show file path, vision summary, primary users, MVP scope, complexity score, open question count, and next step (`/specforge.specify ideas/###-<short-name>`).
 
-   **For simple ideas (complexity < 4)**:
-   ```
-   ## Idea Document Created
+**For complex ideas (complexity >= 4)**: Show idea file path, features directory, vision summary, complexity rating, feature table (name, priority, status), recommended implementation order, and next step (`/specforge.specify` with the first feature path).
 
-   📄 **File**: ideas/###-<short-name>/idea.md
+**Handoff options**:
 
-   ### Summary
-   - **Vision**: [1-line summary]
-   - **Primary users**: [list]
-   - **MVP scope**: [key items]
-   - **Complexity**: Simple ([X]/10)
-   - **Open questions**: [count]
-
-   ### Next Step
-   → `/specforge.specify ideas/###-<short-name>` to create formal specification
-   ```
-
-   **For complex ideas (complexity ≥ 4)**:
-   ```
-   ## Idea Document & Features Created
-
-   📄 **Idea**: ideas/###-<short-name>/idea.md
-   📁 **Features**: ideas/###-<short-name>/features/
-
-   ### Summary
-   - **Vision**: [1-line summary]
-   - **Complexity**: [Moderate|Complex|Very Complex] ([X]/10)
-
-   ### Features Identified
-
-   | # | Feature | Priority | Status |
-   |---|---------|----------|--------|
-   | 01 | [name] | P1/MVP | 🔲 Ready to specify |
-   | 02 | [name] | P1/MVP | 🔲 Ready to specify |
-   | 03 | [name] | P2 | 🔲 Ready to specify |
-
-   ### Recommended Implementation Order
-   1. **Start with**: Feature 01 - [name]
-   2. **Then**: Feature 02 - [name] (depends on 01)
-   3. **Later**: Feature 03 - [name]
-
-   ### Next Step
-   → `/specforge.specify ideas/###-<short-name>/features/01-feature-name.md` to specify first feature
-   → Or `/specforge.specify ideas/###-<short-name>` to specify entire idea as one spec
-   ```
-
-3. **Handoff options**:
-   - **Specify next feature**: `/specforge.specify` with feature number or path
-   - **Refine idea further**: `/specforge.idea` to add more features or details
-   - **Review manually**: Edit the idea or feature documents directly
+- `/specforge.specify` with feature number or path to specify
+- `/specforge.idea` to add more features or details
+- Edit documents directly for manual refinement
 
 ## Guidelines
 
-### Do's
-- **Be conversational**: This is exploration, not interrogation
-- **Make suggestions**: Offer your best guesses - user can accept or override
-- **Infer sensible defaults**: Don't ask about everything; assume industry standards
-- **Focus on the "what" and "why"**: Not the "how" (that comes in planning)
-- **Keep it concise**: The idea doc should be 1-3 pages, not a novel
-- **Decompose complexity**: Break large ideas into focused, independent features
-- **Identify dependencies**: Map which features need others to work
+- Be conversational - this is exploration, not interrogation. Make suggestions, offer your best guesses, and let the user accept or override them.
+- Infer sensible defaults. Focus on the "what" and "why", not the "how" (that comes in planning).
+- Keep the idea doc to 1-3 pages. Aim for 5-7 questions max; stop when you have enough.
+- Decompose complexity into focused, independent features with mapped dependencies, but don't force decomposition on simple ideas.
+- Avoid implementation details (tech stack, architecture, code). Always define the MVP; without it, scope tends to creep.
 
-### Don'ts
-- **Don't ask too many questions**: 5-7 max, stop if you have enough
-- **Don't require perfect answers**: Rough is fine, can refine later
-- **Don't include implementation details**: No tech stack, architecture, code
-- **Don't create the spec**: That's `/specforge.specify`'s job
-- **Don't skip the MVP definition**: This is critical for scope control
-- **Don't create monolithic features**: If scope is large, decompose it
-- **Don't force decomposition**: Simple ideas don't need feature files
+If limited to few questions, prioritize: (1) problem validation, (2) primary user, (3) success definition, (4) scope boundaries, (5) constraints.
 
-### Question Priority
+### Handling Ideas by Detail Level
 
-If limited to few questions, prioritize in this order:
-1. **Problem/need validation** - Is this solving a real problem?
-2. **Primary user identification** - Who is this for?
-3. **Success definition** - How do we know it worked?
-4. **Scope boundaries** - What's explicitly out?
-5. **Constraints** - What limits do we have?
+**Vague ideas** (e.g., "an app for photos"): Start with the problem, identify the user, find the one thing it does well, then build from there.
 
-### Handling Vague Ideas
+**Detailed ideas**: Summarize what you understood, ask only for missing pieces, confirm assumptions, move quickly to document generation.
 
-If the initial idea is very vague (e.g., "an app for photos"):
-
-1. Start with the problem: "What frustrates you about managing photos today?"
-2. Identify the user: "Is this for personal use, a team, or public?"
-3. Find the hook: "What's the one thing this MUST do well?"
-4. Build from there
-
-### Handling Detailed Ideas
-
-If the user provides lots of detail:
-
-1. Summarize what you understood
-2. Ask only for missing critical pieces
-3. Confirm assumptions explicitly
-4. Move quickly to document generation
-
-### Handling Complex Ideas
-
-When an idea has high complexity score (≥ 4):
-
-1. **Explain the decomposition**: "This idea has several distinct parts. Let me break it down into focused features."
-
-2. **Present the feature breakdown**: Show the proposed features in a table and ask for confirmation:
-   ```
-   Based on your idea, I've identified these features:
-
-   | Feature | Description | Priority |
-   |---------|-------------|----------|
-   | 01-user-auth | User registration and login | P1 |
-   | 02-dashboard | Main user interface | P1 |
-   | 03-reporting | Generate and export reports | P2 |
-
-   Does this breakdown make sense? Should I adjust any features?
-   ```
-
-3. **Confirm dependencies**: "Feature 02 needs Feature 01 to be done first. Is that correct?"
-
-4. **Suggest phasing**: For very complex ideas, recommend MVP vs. later phases
-
-5. **Generate incrementally**: Create idea.md first, then each feature file
-
-### Feature Decomposition Strategies
-
-Use these strategies to identify feature boundaries:
-
-| Strategy | When to Use | Example |
-|----------|-------------|---------|
-| **By User Flow** | Sequential workflows | Onboarding → Core → Admin |
-| **By Domain** | Distinct business areas | Auth, Payments, Inventory |
-| **By Priority** | Clear MVP vs. extras | Must-have vs. Nice-to-have |
-| **By Independence** | Can deploy separately | API, UI, Notifications |
-| **By User Type** | Different personas | Customer, Admin, Support |
+**Complex ideas** (score >= 4): Explain the decomposition, present proposed features in a table for confirmation, confirm dependencies, suggest phasing for very complex ideas, then generate idea.md first followed by each feature file.
 
 ### Examples
 
 **Simple idea** (no decomposition):
 > "Add a dark mode toggle to the settings page"
 
-Complexity: ~2 (single capability, one user type, no integrations)
-→ Create idea.md only
-
-**Moderate idea** (2-3 features):
-> "Build a contact form with email notifications and admin dashboard"
-
-Complexity: ~5 (3 capabilities, 2 user types, 1 integration)
-→ Features: `01-contact-form`, `02-email-notifications`, `03-admin-dashboard`
+Complexity: ~2 (single capability, one user type, no integrations) → Create idea.md only
 
 **Complex idea** (4+ features):
 > "Create an e-commerce platform with product catalog, shopping cart, checkout, user accounts, order management, and analytics"

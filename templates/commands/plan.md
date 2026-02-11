@@ -7,7 +7,7 @@ semantic_anchors:
   - C4 Model              # Context → Containers → Components → Code, Simon Brown
   - DRY                   # Don't Repeat Yourself - identify reuse opportunities first
   - arc42                 # Architecture documentation template, 12 sections
-handoffs: 
+handoffs:
   - label: Create Tasks
     agent: speckit.tasks
     prompt: Break the plan into tasks
@@ -29,7 +29,7 @@ agent_scripts:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Outline
 
@@ -37,226 +37,71 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
 
-3. **Load source idea (CRITICAL)**: Extract the SOURCE IDEA from spec.md header or locate it:
+3. **Load source idea**: Extract the source idea from spec.md header or locate it:
    - Check spec.md for `**Source**:` or `**Parent Idea**:` links
-   - If found, load the linked idea.md file
-   - If not found, search `ideas/` directory for matching idea by feature name
-   - Extract **Technical Hints** section from idea (if present)
-   - Extract any technical details from:
-     - "Constraints & Assumptions" → technical constraints
-     - "Discovery Notes" → technical decisions made during exploration
-     - Feature files → "Technical Hints" or "Notes" sections
-   - Store these as IDEA_TECHNICAL_CONSTRAINTS for validation in step 7
+   - If found, load the linked idea.md file; otherwise search `ideas/` by feature name
+   - Extract **Technical Hints**, **Constraints & Assumptions**, and **Discovery Notes** sections
+   - Store these as IDEA_TECHNICAL_CONSTRAINTS for validation in step 9
 
-4. **Load Existing Documentation (CRITICAL for consistency)**:
+<doc_loading>
+4. **Load existing documentation**: New features that contradict existing domain rules cause integration failures downstream.
 
-   > **Apply**: Single Source of Truth - ensure new feature aligns with existing project documentation.
+   a. **Check `/docs` directory**: If `/docs/README.md` exists, list existing domains from `/docs/*/spec.md`.
 
-   BEFORE designing, load existing project documentation to understand context:
+   b. **Identify target domain** from spec.md's DOCUMENTATION_CONTEXT (set by specify) or infer from feature name.
 
-   a. **Check if `/docs` directory exists**:
-      - If `/docs/README.md` exists → project has consolidated documentation
-      - List existing domains from `/docs/*/spec.md`
+   c. **Load domain spec** from `/docs/{domain}/spec.md`: extract existing features, entities, business rules, and API contracts to understand how the new feature fits.
 
-   b. **Identify target domain** from spec.md:
-      - Extract domain from DOCUMENTATION_CONTEXT (set by specify)
-      - If not set, infer from feature name/description
+   d. **Load cross-domain dependencies** if spec.md references other domains — load related specs for integration context.
 
-   c. **Load domain spec** from `/docs/{domain}/spec.md`:
-      - Extract existing features in this domain
-      - Identify entities, business rules, API contracts
-      - Understand how new feature fits with existing ones
+   e. **Create DOCUMENTATION_CONTEXT** summarizing:
+      - Features in domain (with business rules and integration points)
+      - Reusable entities (with fields and extension needs)
+      - Domain API patterns (with reuse potential for new feature)
+      - Cross-domain dependencies (domain, dependency, contract)
 
-   d. **Load cross-domain dependencies** (if needed):
-      - Check spec.md for dependencies on other domains
-      - Load related domain specs for integration context
-      - Identify shared entities or contracts
+   f. **If no `/docs` exists**: Log that this is likely the first feature and recommend running `/specforge.merge` after implementation.
+</doc_loading>
 
-   e. **Create DOCUMENTATION_CONTEXT**:
-      ```markdown
-      ## Existing Documentation Context
+<architecture_registry>
+5. **Load architecture registry**: Skipping this step leads to pattern drift — teams waste time debugging inconsistencies across features.
 
-      ### Target Domain: {domain}
+   a. **Check for `/memory/architecture-registry.md`** and extract: established patterns, technology decisions, component conventions, anti-patterns, and cross-feature dependencies.
 
-      #### Features in Domain
-      | Feature | Business Rules | Integration Points |
-      |---------|----------------|-------------------|
-      | [feature] | [rules] | [APIs, events] |
+   b. **Create ARCHITECTURE_CONSTRAINTS list** covering: patterns to reuse, required technologies, component locations/naming, and approaches to avoid.
 
-      #### Reusable Entities (from domain)
-      | Entity | Fields | Extension Needed |
-      |--------|--------|------------------|
-      | [entity] | [key fields] | [yes/no - what] |
+   c. **If no registry exists**: Log the absence, recommend running `/specforge.learn` after this feature, and proceed with explicit decision documentation.
+</architecture_registry>
 
-      #### Domain API Patterns
-      | Endpoint | Purpose | Reuse For |
-      |----------|---------|-----------|
-      | [endpoint] | [what it does] | [new feature usage] |
+<codebase_exploration>
+6. **Explore existing codebase**: Creating new code when reusable components exist wastes effort and fragments the codebase.
 
-      ### Cross-Domain Dependencies
-      | Domain | Dependency | Contract |
-      |--------|------------|----------|
-      | [domain] | [what we need] | [API/event] |
-      ```
+   a. **Identify reusable components**: Search for existing services, utilities, base classes, and data models that overlap with requirements.
 
-   f. **If no `/docs` exists**:
-      - Log: "No consolidated documentation found - this is likely the first feature"
-      - Recommend running `/specforge.merge` after implementation to initialize `/docs`
+   b. **Analyze existing architecture**: Understand project structure, established patterns, configuration mechanisms, and error handling conventions.
 
-   **CRITICAL PRINCIPLE**: New features MUST be consistent with domain's documented business rules and entities.
+   c. **For each capability in the spec**: search for similar functionality, check service/lib/util directories, review related features, and inspect shared infrastructure.
 
-5. **Load Architecture Registry (CRITICAL for technical consistency)**:
+   d. **Document findings** in research.md (Existing Codebase Analysis section) with tables for: reusable components found, existing patterns to follow, and potential conflicts.
 
-   > **Apply**: DRY - reuse before creating. ADR for understanding past decisions. Clean/Hexagonal Architecture for layer constraints.
+   e. **Apply reuse decision matrix**: REUSE (fits as-is) → EXTEND (needs additions) → REFACTOR (needs redesign) → NEW (nothing suitable, document why).
+</codebase_exploration>
 
-   BEFORE exploring the codebase, load the architecture registry to understand established patterns:
+<architecture_alignment>
+7. **Validate architecture alignment**: Undocumented divergence causes architectural drift, which compounds across features until the system becomes unmaintainable.
 
-   a. **Check if registry exists**:
-      - Look for `/memory/architecture-registry.md`
-      - If exists, read and extract:
-        * **Established Patterns**: Patterns that MUST be reused
-        * **Technology Decisions**: Tech choices that MUST be followed
-        * **Component Conventions**: Standard locations and naming
-        * **Anti-Patterns**: Approaches to AVOID
-        * **Cross-Feature Dependencies**: Shared components to leverage
+   For each capability, check against ARCHITECTURE_CONSTRAINTS: does an established pattern exist? Is a technology decision specified? Does a component convention apply? Is there an anti-pattern risk?
 
-   b. **Create ARCHITECTURE_CONSTRAINTS list**:
-      ```markdown
-      ## Architecture Constraints (from registry)
+   **Create Architecture Alignment Report** in plan.md with:
+   - Patterns applied (from registry or new, aligned or divergent)
+   - Technology alignment (registry vs. plan)
+   - New patterns introduced (with justification and registry update flag)
+   - Divergences requiring justification
 
-      ### Must Use Patterns
-      - [Pattern]: [When to apply] → [File reference]
+   **If divergences detected**: Stop and ask the user — "Plan diverges from established patterns. Approve divergence? (yes/no/modify)". If "no", revise; if "yes", document approval; if "modify", discuss alternatives.
 
-      ### Must Use Technologies
-      - [Category]: [Technology] (not [alternatives])
-
-      ### Component Locations
-      - [Type] → [Location] with [Naming]
-
-      ### Must Avoid
-      - [Anti-pattern]: [What to do instead]
-      ```
-
-   c. **If no registry exists**:
-      - Log: "⚠️ No architecture registry found - this is the first feature or registry not initialized"
-      - Recommend running `/specforge.learn` after this feature to initialize registry
-      - Proceed without constraints (but document all decisions for later extraction)
-
-   **CRITICAL PRINCIPLE**: New features MUST align with established patterns. Divergence requires explicit justification.
-
-6. **Explore existing codebase (CRITICAL for reuse, guided by registry)**:
-
-   BEFORE designing any new solution, thoroughly explore what already exists in the codebase:
-
-   a. **Identify reusable components**:
-      - Search for existing services, utilities, helpers that could fulfill part of the requirements
-      - Look for similar patterns in other features (e.g., "how does feature X handle authentication?")
-      - Check for shared libraries, base classes, or abstractions that should be extended
-      - Identify existing data models that could be reused or extended
-
-   b. **Analyze existing architecture**:
-      - Understand the project structure and conventions
-      - Identify established patterns (repository pattern, service layer, etc.)
-      - Find configuration mechanisms already in place
-      - Check for existing error handling, logging, and monitoring patterns
-
-   c. **Search strategies**:
-      ```
-      For each capability in the spec:
-        1. Search for similar functionality: grep/glob for keywords
-        2. Check existing services: src/services/, lib/, utils/
-        3. Look at related features: how do similar use cases work?
-        4. Review shared infrastructure: middleware, decorators, base classes
-      ```
-
-   d. **Document findings in research.md** (Existing Codebase section):
-      ```markdown
-      ## Existing Codebase Analysis
-
-      ### Reusable Components Found
-
-      | Component | Location | Can Reuse For | Needs Refactoring? |
-      |-----------|----------|---------------|-------------------|
-      | [component] | [path] | [which requirement] | Yes/No - [what] |
-
-      ### Existing Patterns to Follow
-
-      | Pattern | Example Location | Apply To |
-      |---------|------------------|----------|
-      | [pattern name] | [file path] | [where to apply] |
-
-      ### Potential Conflicts
-
-      | Existing | New Requirement | Resolution |
-      |----------|-----------------|------------|
-      | [what exists] | [what we need] | [extend/refactor/new] |
-      ```
-
-   e. **Reuse decision matrix**:
-      - ✅ **REUSE**: Component exists and fits → use directly
-      - 🔧 **EXTEND**: Component exists but needs extension → add capabilities
-      - ♻️ **REFACTOR**: Component exists but needs redesign → refactor for broader use
-      - 🆕 **NEW**: No suitable component exists → create new (document why)
-
-   **CRITICAL PRINCIPLE**: Default to reuse. Only create new implementations when:
-   - No existing component serves the purpose
-   - Refactoring existing code would be more costly than creating new
-   - The new solution would benefit multiple features (justify in research.md)
-
-7. **Validate Architecture Alignment (CRITICAL - prevents drift)**:
-
-   BEFORE proceeding to design, validate that planned approach aligns with ARCHITECTURE_CONSTRAINTS:
-
-   a. **For each capability in the spec**, check against registry:
-
-      ```
-      Capability: [what we need to build]
-
-      Registry Check:
-      - Established Pattern? → [Yes: use it | No: new pattern needed]
-      - Technology Decision? → [Yes: use specified tech | No: make decision and document]
-      - Component Convention? → [Yes: follow location/naming | No: establish new convention]
-      - Anti-Pattern Risk? → [Yes: avoid this approach | No: proceed]
-      ```
-
-   b. **Create Architecture Alignment Report** (in plan.md):
-
-      ```markdown
-      ## Architecture Alignment
-
-      ### Patterns Applied
-      | Pattern | From Registry | Applied To | Status |
-      |---------|---------------|------------|--------|
-      | [pattern] | Yes/No | [component] | ✅ Aligned / ⚠️ Divergent |
-
-      ### Technology Alignment
-      | Category | Registry Says | Plan Uses | Status |
-      |----------|---------------|-----------|--------|
-      | [category] | [tech] | [tech] | ✅ / ⚠️ |
-
-      ### New Patterns Introduced
-      | Pattern | Justification | Registry Update Needed |
-      |---------|---------------|------------------------|
-      | [pattern] | [why new] | Yes - add after implementation |
-
-      ### Divergences (REQUIRES JUSTIFICATION)
-      | From | To | Reason | Approved |
-      |------|----|--------|----------|
-      | [established] | [proposed] | [why change] | ⏳ Pending |
-      ```
-
-   c. **If divergences detected**:
-      - **STOP** and display divergences to user
-      - Ask: "Plan diverges from established patterns. Approve divergence? (yes/no/modify)"
-      - If "no": Revise plan to align with registry
-      - If "yes": Document approval and proceed
-      - If "modify": Discuss alternatives with user
-
-   d. **If no registry exists**:
-      - Mark all decisions as "New Pattern - to be registered"
-      - Proceed with explicit documentation
-
-   **HARD RULE**: Undocumented divergence = architectural drift = rejected plan
+   **If no registry exists**: Mark all decisions as "New Pattern - to be registered" and proceed.
+</architecture_alignment>
 
 8. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
    - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
@@ -266,70 +111,39 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Generate data-model.md, contracts/, quickstart.md
    - Phase 1: Update agent context by running the agent script
    - Re-evaluate Constitution Check post-design
-   - **Prefer extending existing components over creating new ones**
-   - **Ensure Architecture Alignment section is included in plan.md**
+   - Prefer extending existing components over creating new ones
+   - Ensure Architecture Alignment section is included in plan.md
 
-9. **Validate alignment with source idea (CRITICAL)**:
+<idea_alignment>
+9. **Validate alignment with source idea**: Plans that contradict the original idea's technical intent create rework when reviewers catch the mismatch.
 
-   Before finalizing, verify that the plan respects IDEA_TECHNICAL_CONSTRAINTS:
+   a. **Extract technical requirements from idea**: commands/scripts, tools/libraries/versions, execution order, technical patterns, and integration instructions.
 
-   a. **Extract technical requirements from idea**:
-      - Commands or scripts that must be executed
-      - Specific tools, libraries, or versions mentioned
-      - Execution order or sequencing requirements
-      - Technical patterns or approaches specified
-      - Integration points with specific instructions
+   b. **Cross-check with plan.md**: For each constraint — mark as ALIGNED (plan addresses it), DIVERGENT (different approach, requires justification), or MISSING (not addressed, add to plan).
 
-   b. **Cross-check with plan.md**:
-      - For each technical constraint in the idea:
-        - ✅ ALIGNED: Plan explicitly addresses it
-        - ⚠️ DIVERGENT: Plan uses different approach → requires justification
-        - ❌ MISSING: Plan doesn't address it → add to plan
+   c. **Create alignment report** in plan.md with source idea path, constraint status table, and any divergences with justification.
 
-   c. **Create alignment report** in plan.md:
-
-      ```markdown
-      ## Idea Technical Alignment
-
-      **Source Idea**: [path to idea.md]
-
-      ### Technical Constraints from Idea
-
-      | Constraint | Status | Plan Reference |
-      |------------|--------|----------------|
-      | [constraint from idea] | ✅/⚠️/❌ | [section in plan] |
-
-      ### Divergences (if any)
-
-      | Idea Specified | Plan Proposes | Justification |
-      |----------------|---------------|---------------|
-      | [original] | [different approach] | [why change is better] |
-      ```
-
-   d. **STOP and report if critical divergences**:
-      - If plan contradicts explicit technical instructions from idea
-      - Ask user to confirm before proceeding
-      - Document the decision in research.md
+   d. **If critical divergences exist** (plan contradicts explicit technical instructions from idea): Stop and ask user to confirm before proceeding; document the decision in research.md.
+</idea_alignment>
 
 10. **Stop and report**: Command ends after Phase 2 planning. Report:
-   - Branch and IMPL_PLAN path
-   - Generated artifacts
-   - **Architecture alignment status** (patterns followed, divergences approved)
-   - **Alignment status with source idea**
-   - **Reuse summary**: Components reused vs. new code created
-   - **Registry updates needed**: New patterns to register after implementation
+    - Branch and IMPL_PLAN path
+    - Generated artifacts
+    - Architecture alignment status (patterns followed, divergences approved)
+    - Alignment status with source idea
+    - Reuse summary: components reused vs. new code created
+    - Registry updates needed: new patterns to register after implementation
 
 ## Phases
 
 ### Phase 0: Outline & Research
 
 1. **Include Existing Codebase Analysis** (from step 6):
-   - Copy the findings from step 6 into research.md
+   - Copy findings from step 6 into research.md as the first section
    - Include Architecture Constraints from step 5
-   - This MUST be the first section of research.md
    - All subsequent decisions should reference this analysis and registry constraints
 
-2. **Extract unknowns from Technical Context** above:
+2. **Extract unknowns from Technical Context**:
    - For each NEEDS CLARIFICATION → research task
    - For each dependency → best practices task
    - For each integration → patterns task
@@ -341,11 +155,11 @@ You **MUST** consider the user input before proceeding (if not empty).
      Task: "Research {unknown} for {feature context}"
    For each technology choice:
      Task: "Find best practices for {tech} in {domain}"
-   CRITICAL - For each capability:
+   For each capability:
      Task: "Search codebase for existing implementation of {capability}"
    ```
 
-4. **Consolidate findings** in `research.md` using format:
+4. **Consolidate findings** in `research.md`:
 
    ```markdown
    ## Existing Codebase Analysis
@@ -355,56 +169,34 @@ You **MUST** consider the user input before proceeding (if not empty).
 
    ### Decision 1: [Topic]
    - **Decision**: [what was chosen]
-   - **Existing code considered**: [what was evaluated from codebase]
+   - **Existing code considered**: [what was evaluated]
    - **Reuse approach**: REUSE / EXTEND / REFACTOR / NEW
-   - **Rationale**: [why this approach, especially if NEW]
+   - **Rationale**: [why, especially if NEW]
    - **Alternatives considered**: [what else evaluated]
    ```
 
-**Output**: research.md with:
-- Existing codebase analysis
-- All NEEDS CLARIFICATION resolved
-- Reuse decisions justified
+**Output**: research.md with existing codebase analysis, all NEEDS CLARIFICATION resolved, and reuse decisions justified.
 
 ### Phase 1: Design & Contracts
 
 **Prerequisites:** `research.md` complete (with Existing Codebase Analysis)
 
 1. **Extract entities from feature spec** → `data-model.md`:
-   - **First check**: Do any of these entities already exist in the codebase?
-   - If entity exists: Reference it, note if extension needed
-   - If entity is new: Define entity name, fields, relationships
-   - Validation rules from requirements
-   - State transitions if applicable
-   - **Mark each entity**: EXISTING / EXTENDED / NEW
+   - First check if entities already exist in the codebase
+   - If entity exists: reference it, note if extension needed
+   - If entity is new: define name, fields, relationships, validation rules, state transitions
+   - Mark each entity: EXISTING / EXTENDED / NEW
 
 2. **Generate API contracts** from functional requirements:
-   - **First check**: Do similar endpoints already exist?
-   - If similar endpoint exists: Consider extending or reusing patterns
-   - For each user action → endpoint
-   - Use existing patterns from codebase (discovered in step 6) and registry (step 5)
+   - First check if similar endpoints already exist
+   - For each user action → endpoint, using patterns from codebase (step 6) and registry (step 5)
    - Output OpenAPI/GraphQL schema to `/contracts/`
-   - **Mark each endpoint**: EXISTING / MODIFIED / NEW
+   - Mark each endpoint: EXISTING / MODIFIED / NEW
 
 3. **Agent context update**:
-   - Run `{AGENT_SCRIPT}`
-   - These scripts detect which AI agent is in use
+   - Run `{AGENT_SCRIPT}` to detect the AI agent in use
    - Update the appropriate agent-specific context file
    - Add only new technology from current plan
    - Preserve manual additions between markers
 
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
-
-**CRITICAL**: Each artifact should clearly indicate what is reused vs. new
-
-## Key rules
-
-- Use absolute paths
-- ERROR on gate failures or unresolved clarifications
-- **REGISTRY FIRST**: Load architecture registry before exploring codebase
-- **ALIGN OR JUSTIFY**: Follow established patterns or document divergence with approval
-- **REUSE FIRST**: Always explore existing code before designing new solutions
-- **JUSTIFY NEW CODE**: Every new component must explain why existing code couldn't be used
-- **EXTEND > CREATE**: Prefer extending existing components over creating new ones
-- **DOCUMENT DECISIONS**: Every reuse/new decision must be documented in research.md
-- **FLAG NEW PATTERNS**: Mark new patterns for registry update after implementation
+**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file. Each artifact should clearly indicate what is reused vs. new.

@@ -12,7 +12,7 @@ semantic_anchors:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 User can specify: branch name (default: current branch), or "dry-run" to preview without merging.
 
 ## Purpose
@@ -55,32 +55,38 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ### Phase 2: Documentation Consolidation
 
-5. **Determine target domain**:
+5. **Determine target domains** (a feature can span multiple domains):
 
-   a. **Check if domain already specified** in spec.md:
-      - Look for `**Domain**:` metadata in spec header
-      - If found, use that domain
+   a. **Check if domains already specified** in spec.md:
+      - Look for `**Domain**:` or `**Domains**:` metadata in spec header
+      - May be a single value or a comma-separated list (e.g., `payments, orders`)
+      - If found, use those domains
 
-   b. **If no domain specified, infer from context**:
-      - Analyze feature name and spec content
-      - Suggest a domain name (kebab-case, e.g., `user-auth`, `payments`, `dashboard`)
-      - Common domain patterns: auth, users, payments, orders, notifications, settings, etc.
+   b. **If no domains specified, infer from context**:
+      - Analyze feature name, spec content, user stories, and entities
+      - Identify all domains touched by the feature (a checkout feature may touch `payments`, `orders`, and `notifications`)
+      - Suggest domain names (kebab-case, e.g., `user-auth`, `payments`, `dashboard`)
+      - For each domain, identify which parts of the spec belong to it
 
-   c. **Confirm with user**:
-      ```markdown
-      Inferred domain: **{domain}**
-
-      This feature will be consolidated into `/docs/{domain}/spec.md`
-
-      Options:
-      - [Enter] Accept suggested domain
-      - Type new name to use different domain
-      - Type existing domain name to add to existing domain spec
-      ```
-
-   d. **List existing domains** for context:
+   c. **List existing domains** for context:
       ```bash
       ls -d docs/*/ 2>/dev/null | xargs -I {} basename {}
+      ```
+
+   d. **Confirm with user**:
+      ```markdown
+      Inferred domains for this feature:
+
+      | # | Domain | Content to consolidate |
+      |---|--------|----------------------|
+      | 1 | **{domain-1}** | {brief description of what goes there} |
+      | 2 | **{domain-2}** | {brief description of what goes there} |
+
+      Existing domains: {list or "none"}
+
+      Options:
+      - [Enter] Accept suggested domains
+      - Modify the list (add/remove/rename domains)
       ```
 
    **NOTE**: Domains are user-defined, not hardcoded. The command suggests but user decides.
@@ -88,10 +94,13 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 6. **Ensure /docs structure exists**:
 
    ```bash
-   mkdir -p docs/{domain}
+   # Create directories for all target domains
+   mkdir -p docs/{domain-1} docs/{domain-2} ...
    ```
 
-7. **Consolidate spec into /docs/{domain}/spec.md** (OpenSpec-style):
+7. **Consolidate spec into each /docs/{domain}/spec.md** (OpenSpec-style):
+
+   Repeat for **each target domain**, extracting only the relevant portions of the feature spec:
 
    a. **If domain spec doesn't exist** → Create new spec:
 
@@ -113,19 +122,19 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
    #### User Stories
 
-   [Extract user stories with acceptance criteria]
+   [Extract user stories relevant to THIS domain]
 
    #### Business Rules
 
-   [Extract any business rules or constraints]
+   [Extract business rules relevant to THIS domain]
 
    #### Entities
 
-   [Extract entities from data-model.md]
+   [Extract entities belonging to THIS domain from data-model.md]
 
    #### API Contracts
 
-   [Extract from contracts/]
+   [Extract contracts belonging to THIS domain from contracts/]
 
    ---
    ```
@@ -143,7 +152,14 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    > Added: {original-date} | **Modified: {date}** | Source: specs/{feature-id}/
    ```
 
+   c. **Cross-domain references**: When content in one domain references another, add a link:
+   ```markdown
+   > See also: [Related feature in {other-domain}](/docs/{other-domain}/spec.md#feature-name)
+   ```
+
 8. **Update /docs/README.md** (domain index):
+
+   Update the index for **all domains** that were created or modified:
 
    ```markdown
    # Project Documentation
@@ -180,16 +196,18 @@ The `/docs` directory becomes the **single source of truth** for business and fu
     Merged from specs/{feature-id}/
     - [summary of what was implemented]
 
-    Docs: /docs/{domain}/spec.md"
+    Docs: /docs/{domain-1}/spec.md, /docs/{domain-2}/spec.md, ..."
     ```
 
 10. **Commit documentation updates** (if not already included):
 
     ```bash
     git add docs/
-    git commit -m "docs: consolidate {feature-name} into /docs/{domain}
+    git commit -m "docs: consolidate {feature-name} into /docs
 
-    - Updated docs/{domain}/spec.md
+    - Updated docs/{domain-1}/spec.md
+    - Updated docs/{domain-2}/spec.md
+    - ...
     - Updated docs/README.md"
     ```
 
@@ -241,7 +259,8 @@ The `/docs` directory becomes the **single source of truth** for business and fu
     ### Documentation Updated
     | File | Action |
     |------|--------|
-    | docs/{domain}/spec.md | Created/Updated |
+    | docs/{domain-1}/spec.md | Created/Updated |
+    | docs/{domain-2}/spec.md | Created/Updated |
     | docs/README.md | Updated |
 
     ### Architecture (if learn was run)
@@ -249,13 +268,13 @@ The `/docs` directory becomes the **single source of truth** for business and fu
     - CLAUDE.md: {modules} updated
 
     ### Next Steps
-    - Review /docs/{domain}/spec.md for accuracy
+    - Review each updated /docs/{domain}/spec.md for accuracy
     - Start next feature with /specforge.specify
     ```
 
 ## Output Files
 
-- `/docs/{domain}/spec.md` - Domain specification (source of truth)
+- `/docs/{domain}/spec.md` - Domain specification for each concerned domain (source of truth)
 - `/docs/README.md` - Domain index
 
 ## Key Principles

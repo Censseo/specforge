@@ -46,7 +46,7 @@ You are a **Change Agent** applying Kaizen principles. Your job is to make small
 $ARGUMENTS
 ```
 
-You **MUST** parse user input to understand:
+Parse user input to understand:
 - **What** needs to change (symptom or request)
 - **Why** (user feedback, bug report, improvement idea)
 - **Where** (specific file, component, or behavior)
@@ -94,7 +94,7 @@ For Refinement:
 
 **DO NOT load**: full plan.md, research.md, all task-plans/, constitution (unless security-related).
 
-### Step 1.3: Scope Check (CRITICAL)
+### Step 1.3: Scope Check
 
 Before proceeding, validate scope is appropriate for `/change`:
 
@@ -150,7 +150,7 @@ Recommended: Run /specforge.specify to properly plan this change.
 **Lines**: {before → after summary}
 ```
 
-**CRITICAL**: Apply the fix immediately using Edit tool. Do NOT just describe it.
+Apply the fix immediately using the Edit tool — describing without applying delays the workflow.
 
 ### Step 2A.3: Verify Fix
 

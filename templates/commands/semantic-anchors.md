@@ -143,6 +143,39 @@ Format: `Semantic Anchors: [anchor1], [anchor2], [anchor3]`
 
 ---
 
+## Standard Classifications
+
+Shared severity and status definitions used across specforge commands. Individual commands (validate, review, fix) may include a trimmed version; this is the canonical reference.
+
+### Severity Levels
+
+| Severity | Meaning | Action |
+| -------- | ------- | ------ |
+| CRITICAL | Blocks functionality or violates constitution | Must fix before proceeding |
+| HIGH | Significant defect, security risk, or missing coverage | Fix before implementation/merge |
+| MEDIUM | Quality issue, inconsistency, or partial coverage | Fix when practical |
+| LOW | Style, minor redundancy, cosmetic | Fix if convenient |
+
+### Validation Statuses
+
+| Status | Condition |
+| ------ | --------- |
+| PASSED | All scenarios executed and passed |
+| FAILED | All scenarios ran but some failed |
+| INCOMPLETE | Execution errors prevented testing |
+| PARTIAL | Some scenarios were skipped |
+
+### Bug Statuses
+
+| Status | Meaning |
+| ------ | ------- |
+| CONFIRMED | Bug reproduced and verified |
+| CANNOT_REPRODUCE | Unable to trigger the described behavior |
+| BY_DESIGN | Behavior is intentional per specification |
+| ENVIRONMENT | Issue specific to a configuration, not a code defect |
+
+---
+
 ## Anchor Combinations (Triangulation)
 
 Combine anchors to create precise context:

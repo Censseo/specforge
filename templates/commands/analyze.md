@@ -17,7 +17,7 @@ scripts:
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+Consider the user input before proceeding (if not empty).
 
 ## Goal
 
@@ -27,9 +27,9 @@ Identify inconsistencies, duplications, ambiguities, and underspecified items ac
 
 ## Operating Constraints
 
-**STRICTLY READ-ONLY**: Do **not** modify any files. Output a structured analysis report. Offer an optional remediation plan (user must explicitly approve before any follow-up editing commands would be invoked manually).
+This command is read-only — output a structured analysis report without modifying any files. Offer an optional remediation plan (user must explicitly approve before any edits).
 
-**Constitution Authority**: The project constitution (`/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/specforge.analyze`.
+The project constitution (`/memory/constitution.md`) takes precedence: constitution conflicts are automatically CRITICAL severity because downstream `/specforge.fix` relies on constitution compliance. If a principle itself needs to change, that requires a separate constitution update outside `/specforge.analyze`.
 
 ## Execution Steps
 
@@ -184,11 +184,11 @@ Ask the user: "Would you like me to suggest concrete remediation edits for the t
 
 ### Analysis Guidelines
 
-- **NEVER modify files** (this is read-only analysis)
-- **NEVER hallucinate missing sections** (if absent, report them accurately)
-- **Prioritize constitution violations** (these are always CRITICAL)
-- **Use examples over exhaustive rules** (cite specific instances, not generic patterns)
-- **Report zero issues gracefully** (emit success report with coverage statistics)
+- Do not modify files — this is read-only analysis
+- If a section is absent, report it accurately rather than inferring content
+- Constitution violations are always CRITICAL severity
+- Cite specific instances rather than generic patterns
+- If no issues found, emit a success report with coverage statistics
 
 ## Context
 

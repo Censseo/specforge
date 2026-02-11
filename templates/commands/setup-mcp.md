@@ -259,7 +259,7 @@ cd .mcp/project-server && npx playwright install chromium
 
 ### Step 5.1: Generate MCP Configuration
 
-**IMPORTANT**: MCP configuration format varies by agent platform.
+MCP configuration format varies by agent platform.
 
 #### For Claude Code (`claude`)
 
