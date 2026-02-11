@@ -22,7 +22,7 @@ Consider the user input before proceeding (if not empty).
 
 ### Phase 1: Context Loading and Progression Detection
 
-1. **Setup**: Run `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
+1. **Setup**: Run `.specforge/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
 
 2. **Load required context documents**:
 

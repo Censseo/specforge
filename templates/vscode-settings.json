@@ -7,8 +7,8 @@
         "speckit.implement": true
     },
     "chat.tools.terminal.autoApprove": {
-        ".specify/scripts/bash/": true,
-        ".specify/scripts/powershell/": true
+        ".specforge/scripts/bash/": true,
+        ".specforge/scripts/powershell/": true
     }
 }
 

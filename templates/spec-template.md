@@ -8,7 +8,7 @@
 <!--
   CONSTITUTION COMPLIANCE (v1.1.0)
   ================================
-  This spec MUST address the following per .specify/memory/constitution.md:
+  This spec MUST address the following per .specforge/memory/constitution.md:
 
   MANDATORY SECTIONS:
   - User Scenarios & Testing - with Given/When/Then acceptance criteria

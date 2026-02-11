@@ -51,9 +51,9 @@ When SpecForge releases new features (like new slash commands or updated templat
 Running `forge init --here --force` will update:
 
 - ✅ **Slash command files** (`.claude/commands/`, `.github/prompts/`, etc.)
-- ✅ **Script files** (`.specify/scripts/`)
-- ✅ **Template files** (`.specify/templates/`)
-- ✅ **Shared memory files** (`.specify/memory/`) - **⚠️ See warnings below**
+- ✅ **Script files** (`.specforge/scripts/`)
+- ✅ **Template files** (`.specforge/templates/`)
+- ✅ **Shared memory files** (`.specforge/memory/`) - **⚠️ See warnings below**
 
 ### What stays safe?
 
@@ -102,35 +102,35 @@ With `--force`, it skips the confirmation and proceeds immediately.
 
 ### 1. Constitution file will be overwritten
 
-**Known issue:** `forge init --here --force` currently overwrites `.specify/memory/constitution.md` with the default template, erasing any customizations you made.
+**Known issue:** `forge init --here --force` currently overwrites `.specforge/memory/constitution.md` with the default template, erasing any customizations you made.
 
 **Workaround:**
 
 ```bash
 # 1. Back up your constitution before upgrading
-cp .specify/memory/constitution.md .specify/memory/constitution-backup.md
+cp .specforge/memory/constitution.md .specforge/memory/constitution-backup.md
 
 # 2. Run the upgrade
 forge init --here --force --ai copilot
 
 # 3. Restore your customized constitution
-mv .specify/memory/constitution-backup.md .specify/memory/constitution.md
+mv .specforge/memory/constitution-backup.md .specforge/memory/constitution.md
 ```
 
 Or use git to restore it:
 
 ```bash
 # After upgrade, restore from git history
-git restore .specify/memory/constitution.md
+git restore .specforge/memory/constitution.md
 ```
 
 ### 2. Custom template modifications
 
-If you customized any templates in `.specify/templates/`, the upgrade will overwrite them. Back them up first:
+If you customized any templates in `.specforge/templates/`, the upgrade will overwrite them. Back them up first:
 
 ```bash
 # Back up custom templates
-cp -r .specify/templates .specify/templates-backup
+cp -r .specforge/templates .specforge/templates-backup
 
 # After upgrade, merge your changes back manually
 ```
@@ -171,15 +171,15 @@ uv tool install specify-cli --force --from git+https://github.com/github/specfor
 forge init --here --force --ai copilot
 
 # Restore your constitution if customized
-git restore .specify/memory/constitution.md
+git restore .specforge/memory/constitution.md
 ```
 
 ### Scenario 2: "I customized templates and constitution"
 
 ```bash
 # 1. Back up customizations
-cp .specify/memory/constitution.md /tmp/constitution-backup.md
-cp -r .specify/templates /tmp/templates-backup
+cp .specforge/memory/constitution.md /tmp/constitution-backup.md
+cp -r .specforge/templates /tmp/templates-backup
 
 # 2. Upgrade CLI
 uv tool install specify-cli --force --from git+https://github.com/github/specforge.git
@@ -188,7 +188,7 @@ uv tool install specify-cli --force --from git+https://github.com/github/specfor
 forge init --here --force --ai copilot
 
 # 4. Restore customizations
-mv /tmp/constitution-backup.md .specify/memory/constitution.md
+mv /tmp/constitution-backup.md .specforge/memory/constitution.md
 # Manually merge template changes if needed
 ```
 
@@ -215,13 +215,13 @@ If you initialized your project with `--no-git`, you can still upgrade:
 
 ```bash
 # Manually back up files you customized
-cp .specify/memory/constitution.md /tmp/constitution-backup.md
+cp .specforge/memory/constitution.md /tmp/constitution-backup.md
 
 # Run upgrade
 forge init --here --force --ai copilot --no-git
 
 # Restore customizations
-mv /tmp/constitution-backup.md .specify/memory/constitution.md
+mv /tmp/constitution-backup.md .specforge/memory/constitution.md
 ```
 
 The `--no-git` flag skips git initialization but doesn't affect file updates.
@@ -303,10 +303,10 @@ This tells SpecForge which feature directory to use when creating specs, plans, 
 
 ```bash
 # If you committed before upgrading
-git restore .specify/memory/constitution.md
+git restore .specforge/memory/constitution.md
 
 # If you backed up manually
-cp /tmp/constitution-backup.md .specify/memory/constitution.md
+cp /tmp/constitution-backup.md .specforge/memory/constitution.md
 ```
 
 **Prevention:** Always commit or back up `constitution.md` before upgrading.
@@ -327,16 +327,16 @@ This warning appears when you run `forge init --here` (or `forge init .`) in a d
 
 1. **The directory has existing content** - In the example, 25 files/folders
 2. **Files will be merged** - New template files will be added alongside your existing files
-3. **Some files may be overwritten** - If you already have SpecForge files (`.claude/`, `.specify/`, etc.), they'll be replaced with the new versions
+3. **Some files may be overwritten** - If you already have SpecForge files (`.claude/`, `.specforge/`, etc.), they'll be replaced with the new versions
 
 **What gets overwritten:**
 
 Only SpecForge infrastructure files:
 
 - Agent command files (`.claude/commands/`, `.github/prompts/`, etc.)
-- Scripts in `.specify/scripts/`
-- Templates in `.specify/templates/`
-- Memory files in `.specify/memory/` (including constitution)
+- Scripts in `.specforge/scripts/`
+- Templates in `.specforge/templates/`
+- Memory files in `.specforge/memory/` (including constitution)
 
 **What stays untouched:**
 
@@ -361,7 +361,7 @@ Only SpecForge infrastructure files:
 - ✅ **Expected** when adding SpecForge to an existing codebase
 - ⚠️ **Unexpected** if you thought you were creating a new project in an empty directory
 
-**Prevention tip:** Before upgrading, commit or back up your `.specify/memory/constitution.md` if you customized it.
+**Prevention tip:** Before upgrading, commit or back up your `.specforge/memory/constitution.md` if you customized it.
 
 ### "CLI upgrade doesn't seem to work"
 

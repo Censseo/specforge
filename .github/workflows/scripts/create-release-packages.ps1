@@ -61,9 +61,9 @@ New-Item -ItemType Directory -Path $GenReleasesDir -Force | Out-Null
 function Rewrite-Paths {
     param([string]$Content)
     
-    $Content = $Content -replace '(/?)\bmemory/', '.specify/memory/'
-    $Content = $Content -replace '(/?)\bscripts/', '.specify/scripts/'
-    $Content = $Content -replace '(/?)\btemplates/', '.specify/templates/'
+    $Content = $Content -replace '(/?)\bmemory/', '.specforge/memory/'
+    $Content = $Content -replace '(/?)\bscripts/', '.specforge/scripts/'
+    $Content = $Content -replace '(/?)\btemplates/', '.specforge/templates/'
     return $Content
 }
 
@@ -212,13 +212,13 @@ function Build-Variant {
     New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
     
     # Copy base structure but filter scripts by variant
-    $specDir = Join-Path $baseDir ".specify"
+    $specDir = Join-Path $baseDir ".specforge"
     New-Item -ItemType Directory -Path $specDir -Force | Out-Null
     
     # Copy memory directory
     if (Test-Path "memory") {
         Copy-Item -Path "memory" -Destination $specDir -Recurse -Force
-        Write-Host "Copied memory -> .specify"
+        Write-Host "Copied memory -> .specforge"
     }
     
     # Only copy the relevant script variant directory
@@ -230,13 +230,13 @@ function Build-Variant {
             'sh' {
                 if (Test-Path "scripts/bash") {
                     Copy-Item -Path "scripts/bash" -Destination $scriptsDestDir -Recurse -Force
-                    Write-Host "Copied scripts/bash -> .specify/scripts"
+                    Write-Host "Copied scripts/bash -> .specforge/scripts"
                 }
             }
             'ps' {
                 if (Test-Path "scripts/powershell") {
                     Copy-Item -Path "scripts/powershell" -Destination $scriptsDestDir -Recurse -Force
-                    Write-Host "Copied scripts/powershell -> .specify/scripts"
+                    Write-Host "Copied scripts/powershell -> .specforge/scripts"
                 }
             }
         }
@@ -261,7 +261,7 @@ function Build-Variant {
             New-Item -ItemType Directory -Path $destFileDir -Force | Out-Null
             Copy-Item -Path $_.FullName -Destination $destFile -Force
         }
-        Write-Host "Copied templates -> .specify/templates"
+        Write-Host "Copied templates -> .specforge/templates"
     }
     
     # Generate agent-specific command files

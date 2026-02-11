@@ -304,13 +304,13 @@ def _rewrite_paths_for_bundled(content: str) -> str:
     """Rewrite paths in template content for bundled templates."""
     # Same logic as create-release-packages.sh rewrite_paths
     # Match: (optional /)memory/ or scripts/ or templates/
-    # But NOT when already prefixed with .specify (e.g., ".specify/scripts/")
+    # But NOT when already prefixed with .specforge (e.g., ".specforge/scripts/")
     # Match at: start of line, after whitespace, after backtick, after quote
     for path in ['memory', 'scripts', 'templates']:
         # Match at start of string or line
-        content = re.sub(rf'^(/?){path}/', rf'.specify/{path}/', content, flags=re.MULTILINE)
+        content = re.sub(rf'^(/?){path}/', rf'.specforge/{path}/', content, flags=re.MULTILINE)
         # Match after whitespace, backtick, or quotes
-        content = re.sub(rf'(?<=[\s`"\'])(/?){path}/', rf'.specify/{path}/', content)
+        content = re.sub(rf'(?<=[\s`"\'])(/?){path}/', rf'.specforge/{path}/', content)
     return content
 
 def build_template_from_bundled(
@@ -343,8 +343,8 @@ def build_template_from_bundled(
         return False
 
     try:
-        # Create .specify directory structure
-        specify_dir = target_dir / ".specify"
+        # Create .specforge directory structure
+        specify_dir = target_dir / ".specforge"
         specify_dir.mkdir(parents=True, exist_ok=True)
 
         # Copy memory
@@ -1241,10 +1241,10 @@ def download_and_extract_template(project_path: Path, ai_assistant: str, script_
 
 
 def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = None) -> None:
-    """Ensure POSIX .sh scripts under .specify/scripts (recursively) have execute bits (no-op on Windows)."""
+    """Ensure POSIX .sh scripts under .specforge/scripts (recursively) have execute bits (no-op on Windows)."""
     if os.name == "nt":
         return  # Windows: skip silently
-    scripts_root = project_path / ".specify" / "scripts"
+    scripts_root = project_path / ".specforge" / "scripts"
     if not scripts_root.is_dir():
         return
     failures: list[str] = []

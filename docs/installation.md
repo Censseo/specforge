@@ -70,7 +70,7 @@ After initialization, you should see the following commands available in your AI
 - `/specforge.plan` - Generate implementation plans  
 - `/specforge.tasks` - Break down into actionable tasks
 
-The `.specify/scripts` directory will contain both `.sh` and `.ps1` scripts.
+The `.specforge/scripts` directory will contain both `.sh` and `.ps1` scripts.
 
 ## Troubleshooting
 
