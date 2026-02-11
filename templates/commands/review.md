@@ -9,10 +9,10 @@ semantic_anchors:
   - Boy Scout Rule        # Leave code better than you found it
 handoffs:
   - label: Deep Fix
-    agent: speckit.fix
+    agent: specforge.fix
     prompt: Diagnose root causes and create a comprehensive correction plan
   - label: Implement Fixes
-    agent: speckit.implement
+    agent: specforge.implement
     prompt: Execute the correction tasks from review
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json

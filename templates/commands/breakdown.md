@@ -50,7 +50,7 @@ Consider the user input before proceeding (if not empty).
 
 3. **Check for specialized agents**:
 
-   - Check if `__AGENT_DIR__/agents/speckit/researcher.md` and `__AGENT_DIR__/agents/speckit/planner.md` exist
+   - Check if `__AGENT_DIR__/agents/specforge/researcher.md` and `__AGENT_DIR__/agents/specforge/planner.md` exist
    - Store availability for later use (determines subagent_type)
 
 4. **Analyze tasks.md progression**:
@@ -90,7 +90,7 @@ Runs only after user confirms which phase to process. The purpose is to reduce u
 1. **Launch researcher agent for codebase analysis**:
 
    Use Task tool with:
-   - If `__AGENT_DIR__/agents/speckit/researcher.md` exists: subagent_type="researcher"
+   - If `__AGENT_DIR__/agents/specforge/researcher.md` exists: subagent_type="researcher"
    - Otherwise: subagent_type="Explore" with thoroughness="medium"
    - Model: sonnet (reuse validation requires judgment)
 
@@ -189,7 +189,7 @@ Plans tasks by logical groups for efficiency (fewer agent calls, less token usag
    a. **Launch planner agent**:
 
       Use Task tool with:
-      - If `__AGENT_DIR__/agents/speckit/planner.md` exists: subagent_type="planner"
+      - If `__AGENT_DIR__/agents/specforge/planner.md` exists: subagent_type="planner"
       - Otherwise: subagent_type="general-purpose"
       - Model: sonnet by default. Escalate to opus when: group contains security/auth/payment tasks, 10+ tasks with complex dependencies, cross-domain integration, or user explicitly requested thorough analysis.
 

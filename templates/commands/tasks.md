@@ -8,11 +8,11 @@ semantic_anchors:
   - INVEST Criteria       # Tasks should be Independent, Valuable, Estimable
 handoffs:
   - label: Analyze For Consistency
-    agent: speckit.analyze
+    agent: specforge.analyze
     prompt: Run a project analysis for consistency
     send: true
   - label: Implement Project
-    agent: speckit.implement
+    agent: specforge.implement
     prompt: Start the implementation in phases
     send: true
 scripts:

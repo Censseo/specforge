@@ -8,14 +8,14 @@ semantic_anchors:
   - YAGNI                 # You Aren't Gonna Need It - no speculative features
 handoffs:
   - label: Specify Next Feature
-    agent: speckit.specify
+    agent: specforge.specify
     prompt: Create a specification for the next unspecified feature
     send: true
   - label: Refine Idea Further
-    agent: speckit.idea
+    agent: specforge.idea
     prompt: Continue refining the idea with additional context
   - label: Add More Features
-    agent: speckit.idea
+    agent: specforge.idea
     prompt: Decompose additional features from the idea
 ---
 
@@ -134,7 +134,7 @@ ideas/###-<short-name>/
     ├── 01-<feature-name>.md
     └── 02-<feature-name>.md
 
-.speckit/                              # Created later by /specforge.specify
+.specforge/                            # Created later by /specforge.specify
 ├── ###-<short-name>/                  # Spec for simple idea (complexity < 4)
 └── ###-01-<feature-name>/             # Spec per feature (complexity ≥ 4)
 ```

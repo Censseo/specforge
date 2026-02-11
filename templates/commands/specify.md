@@ -8,14 +8,14 @@ semantic_anchors:
   - BDD Gherkin           # Given-When-Then acceptance scenarios
 handoffs:
   - label: Build Technical Plan
-    agent: speckit.plan
+    agent: specforge.plan
     prompt: Create a plan for the spec. I am building with...
   - label: Clarify Spec Requirements
-    agent: speckit.clarify
+    agent: specforge.clarify
     prompt: Clarify specification requirements
     send: true
   - label: Explore Idea First
-    agent: speckit.idea
+    agent: specforge.idea
     prompt: Let me explore this idea before creating a formal specification
 scripts:
   sh: scripts/bash/create-new-feature.sh --json "{ARGS}"

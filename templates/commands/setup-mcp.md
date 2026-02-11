@@ -2,7 +2,7 @@
 description: Generate a project-specific MCP server for automated testing, process management, and browser automation
 handoffs:
   - label: Validate with MCP
-    agent: speckit.validate
+    agent: specforge.validate
     prompt: Run integration tests using the MCP server
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --paths-only

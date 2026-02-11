@@ -151,8 +151,8 @@ cd .kilocode/rules/
 ls -la
 
 # Delete old versions (example filenames - yours may differ)
-rm speckit.specify-old.md
-rm speckit.plan-v1.md
+rm specforge.specify-old.md
+rm specforge.plan-v1.md
 ```
 
 Restart your IDE to refresh the command list.
@@ -204,7 +204,7 @@ cd .kilocode/rules/
 ls -la
 
 # Delete old command files
-rm speckit.old-command-name.md
+rm specforge.old-command-name.md
 
 # Restart your IDE
 ```

@@ -8,7 +8,7 @@ semantic_anchors:
   - Active Listening      # Capture intent, not just words
 handoffs: 
   - label: Build Technical Plan
-    agent: speckit.plan
+    agent: specforge.plan
     prompt: Create a plan for the spec. I am building with...
 scripts:
    sh: scripts/bash/check-prerequisites.sh --json --paths-only

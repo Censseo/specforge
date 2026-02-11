@@ -9,10 +9,10 @@ semantic_anchors:
   - YAGNI                 # Don't over-engineer the change
 handoffs:
   - label: Full Specify
-    agent: speckit.specify
+    agent: specforge.specify
     prompt: This change is too large for /change. Run full specification workflow.
   - label: Validate Change
-    agent: speckit.validate
+    agent: specforge.validate
     prompt: Validate that the change works as expected
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --include-tasks

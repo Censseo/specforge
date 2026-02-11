@@ -8,13 +8,13 @@ semantic_anchors:
   - Regression Testing    # Verify unchanged functionality still works
 handoffs:
   - label: Diagnose & Fix
-    agent: speckit.fix
+    agent: specforge.fix
     prompt: Diagnose why the feature is failing and create a correction plan
   - label: Quick Fix
-    agent: speckit.implement
+    agent: specforge.implement
     prompt: Fix the validation issues found (use when root cause is clear)
   - label: Update Tasks
-    agent: speckit.review
+    agent: specforge.review
     prompt: Add correction tasks for validation failures
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json

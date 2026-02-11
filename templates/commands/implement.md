@@ -9,10 +9,10 @@ semantic_anchors:
   - DRY                  # Don't Repeat Yourself, single source of truth
 handoffs:
   - label: Diagnose Issues
-    agent: speckit.fix
+    agent: specforge.fix
     prompt: Diagnose why implementation is failing and create a correction plan
   - label: Validate
-    agent: speckit.validate
+    agent: specforge.validate
     prompt: Run integration tests to verify implementation
 scripts:
   sh: scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
@@ -71,7 +71,7 @@ Consider the user input before proceeding (if not empty).
 5. Parse tasks.md and extract task phases (Setup, Tests, Core, Integration, Polish), dependencies (sequential vs parallel [P]), task details (ID, description, file paths), and execution order.
 
 6. **Load available specialized agents**:
-   - Run `ls __AGENT_DIR__/agents/speckit/*.md 2>/dev/null`
+   - Run `ls __AGENT_DIR__/agents/specforge/*.md 2>/dev/null`
 
    <if-agents-found>
    For each agent file: read frontmatter (name, description, model), derive file-pattern mappings, build an agent registry `{pattern} -> {name} (model: {model})`. Example mappings:
