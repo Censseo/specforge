@@ -1386,6 +1386,54 @@ def _format_context_for_agent(agent_key: str, body: str) -> str:
     return body
 
 
+def _ensure_paired_context_files(project_path: Path) -> int:
+    """Ensure CLAUDE.md and AGENTS.md coexist in every directory where either is found.
+
+    Recursively scans the project for CLAUDE.md and AGENTS.md files.
+    For each directory where one exists without the other, creates the missing
+    file from the content of the existing one.
+
+    Returns the number of files created.
+    """
+    _SKIP_DIRS = {".git", ".specforge", "node_modules", "__pycache__", ".venv", "venv", ".tox"}
+
+    def _should_skip(file_path: Path) -> bool:
+        rel_parts = file_path.relative_to(project_path).parts
+        # Check parent directories (all parts except the filename itself)
+        return any(p in _SKIP_DIRS or p.startswith(".") for p in rel_parts[:-1])
+
+    claude_dirs: set[Path] = set()
+    agents_dirs: set[Path] = set()
+
+    for f in project_path.rglob("CLAUDE.md"):
+        if not _should_skip(f):
+            claude_dirs.add(f.parent)
+
+    for f in project_path.rglob("AGENTS.md"):
+        if not _should_skip(f):
+            agents_dirs.add(f.parent)
+
+    created = 0
+
+    # Create AGENTS.md where only CLAUDE.md exists
+    for dir_path in claude_dirs - agents_dirs:
+        source = dir_path / "CLAUDE.md"
+        target = dir_path / "AGENTS.md"
+        body = _extract_markdown_body(source.read_text(encoding="utf-8"))
+        target.write_text(body, encoding="utf-8")
+        created += 1
+
+    # Create CLAUDE.md where only AGENTS.md exists
+    for dir_path in agents_dirs - claude_dirs:
+        source = dir_path / "AGENTS.md"
+        target = dir_path / "CLAUDE.md"
+        body = _extract_markdown_body(source.read_text(encoding="utf-8"))
+        target.write_text(body, encoding="utf-8")
+        created += 1
+
+    return created
+
+
 def sync_context_files(installed_agents: list[str], project_path: Path, tracker: "StepTracker" = None) -> None:
     """Sync context files across all installed agents using last-modified-wins.
 
@@ -1393,11 +1441,15 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
     and copies its content to all other agents' context files.
     Deduplicates shared physical files (e.g., AGENTS.md used by multiple agents).
 
-    CLAUDE.md and AGENTS.md are always kept in sync as a pair: if one exists
-    without the other, the missing file is created automatically.
+    Also ensures CLAUDE.md and AGENTS.md coexist in every directory
+    (including subdirectories like specs/) where either file is found.
     """
-    # CLAUDE.md and AGENTS.md should always coexist — ensure both are considered
-    # for sync even if the corresponding agent is not formally installed.
+    # Step 1: Recursively ensure CLAUDE.md / AGENTS.md pairing in all directories
+    paired_created = _ensure_paired_context_files(project_path)
+
+    # Step 2: Sync root-level context files across all installed agents.
+    # CLAUDE.md and AGENTS.md are always considered for root sync even if
+    # the corresponding agent is not formally installed.
     _PAIRED_AGENTS = {"claude": "CLAUDE.md", "opencode": "AGENTS.md"}
     sync_agent_keys = list(installed_agents)
     for agent_key in _PAIRED_AGENTS:
@@ -1425,7 +1477,8 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
 
     if not context_files:
         if tracker:
-            tracker.complete("context-sync", "no context files found, nothing to sync")
+            msg = f"{paired_created} paired file(s) created in subdirs" if paired_created else "no context files found, nothing to sync"
+            tracker.complete("context-sync", msg)
         return
 
     # Find the most recently modified context file
@@ -1465,10 +1518,14 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
         synced_count += 1
 
     if tracker:
-        msg = f"synced from {newest_agent} to {synced_count} file(s)"
+        parts = []
+        if synced_count:
+            parts.append(f"synced from {newest_agent} to {synced_count} file(s)")
         if created_count:
-            msg += f" ({created_count} created)"
-        tracker.complete("context-sync", msg)
+            parts.append(f"{created_count} root file(s) created")
+        if paired_created:
+            parts.append(f"{paired_created} paired file(s) created in subdirs")
+        tracker.complete("context-sync", ", ".join(parts) if parts else "nothing to sync")
 
 
 def sync_agent_working_files(installed_agents: list[str], project_path: Path, tracker: "StepTracker" = None) -> None:
