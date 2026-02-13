@@ -1392,12 +1392,23 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
     Finds the most recently modified context file among all installed agents
     and copies its content to all other agents' context files.
     Deduplicates shared physical files (e.g., AGENTS.md used by multiple agents).
+
+    CLAUDE.md and AGENTS.md are always kept in sync as a pair: if one exists
+    without the other, the missing file is created automatically.
     """
+    # CLAUDE.md and AGENTS.md should always coexist — ensure both are considered
+    # for sync even if the corresponding agent is not formally installed.
+    _PAIRED_AGENTS = {"claude": "CLAUDE.md", "opencode": "AGENTS.md"}
+    sync_agent_keys = list(installed_agents)
+    for agent_key in _PAIRED_AGENTS:
+        if agent_key not in sync_agent_keys:
+            sync_agent_keys.append(agent_key)
+
     # Collect existing context files with mtime, deduplicated by resolved path
     context_files: dict[str, tuple[Path, float]] = {}  # agent_key -> (path, mtime)
     seen_paths: dict[str, str] = {}  # resolved_path_str -> first agent_key that uses it
 
-    for agent_key in installed_agents:
+    for agent_key in sync_agent_keys:
         rel_path = AGENT_CONTEXT_PATHS.get(agent_key)
         if not rel_path:
             continue
@@ -1429,7 +1440,7 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
     created_count = 0
     synced_targets: set[str] = set()  # deduplicate by resolved path
     # Write to all other context files, creating missing ones
-    for agent_key in installed_agents:
+    for agent_key in sync_agent_keys:
         rel_path = AGENT_CONTEXT_PATHS.get(agent_key)
         if not rel_path:
             continue
