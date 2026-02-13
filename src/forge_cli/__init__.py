@@ -1412,9 +1412,9 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
         seen_paths[resolved] = agent_key
         context_files[agent_key] = (full_path, full_path.stat().st_mtime)
 
-    if len(context_files) < 2:
+    if not context_files:
         if tracker:
-            tracker.complete("context-sync", f"{len(context_files)} file(s), nothing to sync")
+            tracker.complete("context-sync", "no context files found, nothing to sync")
         return
 
     # Find the most recently modified context file
@@ -1426,24 +1426,38 @@ def sync_context_files(installed_agents: list[str], project_path: Path, tracker:
     body_content = _extract_markdown_body(newest_content)
 
     synced_count = 0
-    # Write to all other context files
+    created_count = 0
+    synced_targets: set[str] = set()  # deduplicate by resolved path
+    # Write to all other context files, creating missing ones
     for agent_key in installed_agents:
         rel_path = AGENT_CONTEXT_PATHS.get(agent_key)
         if not rel_path:
             continue
         target_path = project_path / rel_path
+        resolved_target = str(target_path.resolve())
 
-        # Skip the source file and deduplicate shared files
-        if str(target_path.resolve()) == str(newest_path.resolve()):
+        # Skip the source file
+        if resolved_target == str(newest_path.resolve()):
             continue
 
+        # Deduplicate shared physical files (e.g., AGENTS.md used by multiple agents)
+        if resolved_target in synced_targets:
+            continue
+        synced_targets.add(resolved_target)
+
+        is_new = not target_path.exists()
         formatted = _format_context_for_agent(agent_key, body_content)
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(formatted, encoding="utf-8")
+        if is_new:
+            created_count += 1
         synced_count += 1
 
     if tracker:
-        tracker.complete("context-sync", f"synced from {newest_agent} to {synced_count} file(s)")
+        msg = f"synced from {newest_agent} to {synced_count} file(s)"
+        if created_count:
+            msg += f" ({created_count} created)"
+        tracker.complete("context-sync", msg)
 
 
 def sync_agent_working_files(installed_agents: list[str], project_path: Path, tracker: "StepTracker" = None) -> None:
