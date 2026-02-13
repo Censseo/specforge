@@ -283,6 +283,49 @@ AGENT_CONFIG = {
 
 SCRIPT_TYPE_CHOICES = {"sh": "POSIX Shell (bash/zsh)", "ps": "PowerShell"}
 
+# Maps agent key -> (command_dir_relative, file_extension, argument_format)
+AGENT_COMMAND_DIRS = {
+    "claude": (".claude/commands", "md", "$ARGUMENTS"),
+    "gemini": (".gemini/commands", "toml", "{{args}}"),
+    "copilot": (".github/agents", "agent.md", "$ARGUMENTS"),
+    "cursor-agent": (".cursor/commands", "md", "$ARGUMENTS"),
+    "qwen": (".qwen/commands", "toml", "{{args}}"),
+    "opencode": (".opencode/command", "md", "$ARGUMENTS"),
+    "windsurf": (".windsurf/workflows", "md", "$ARGUMENTS"),
+    "codex": (".codex/prompts", "md", "$ARGUMENTS"),
+    "kilocode": (".kilocode/workflows", "md", "$ARGUMENTS"),
+    "auggie": (".augment/commands", "md", "$ARGUMENTS"),
+    "roo": (".roo/commands", "md", "$ARGUMENTS"),
+    "codebuddy": (".codebuddy/commands", "md", "$ARGUMENTS"),
+    "amp": (".agents/commands", "md", "$ARGUMENTS"),
+    "shai": (".shai/commands", "md", "$ARGUMENTS"),
+    "q": (".amazonq/prompts", "md", "$ARGUMENTS"),
+    "qoder": (".qoder/commands", "md", "$ARGUMENTS"),
+    "bob": (".bob/commands", "md", "$ARGUMENTS"),
+}
+
+# Maps agent key -> context file path relative to project root
+# Derived from update-agent-context.sh lines 62-77
+AGENT_CONTEXT_PATHS = {
+    "claude": "CLAUDE.md",
+    "gemini": "GEMINI.md",
+    "copilot": ".github/agents/copilot-instructions.md",
+    "cursor-agent": ".cursor/rules/specify-rules.mdc",
+    "qwen": "QWEN.md",
+    "opencode": "AGENTS.md",
+    "codex": "AGENTS.md",
+    "windsurf": ".windsurf/rules/specify-rules.md",
+    "kilocode": ".kilocode/rules/specify-rules.md",
+    "auggie": ".augment/rules/specify-rules.md",
+    "codebuddy": "CODEBUDDY.md",
+    "qoder": "QODER.md",
+    "roo": ".roo/rules/specify-rules.md",
+    "q": "AGENTS.md",
+    "amp": "AGENTS.md",
+    "shai": "SHAI.md",
+    "bob": "AGENTS.md",
+}
+
 CLAUDE_LOCAL_PATH = Path.home() / ".claude" / "local" / "claude"
 
 def get_bundled_path() -> Optional[Path]:
@@ -312,6 +355,141 @@ def _rewrite_paths_for_bundled(content: str) -> str:
         # Match after whitespace, backtick, or quotes
         content = re.sub(rf'(?<=[\s`"\'])(/?){path}/', rf'.specforge/{path}/', content)
     return content
+
+def generate_agent_commands(
+    ai_assistant: str,
+    script_type: str,
+    target_dir: Path,
+    bundled_path: Path,
+) -> bool:
+    """Generate agent-specific command files from bundled templates.
+
+    Handles processing command templates with agent-specific substitutions,
+    creating output files in the appropriate format (md, toml, agent.md),
+    copilot-specific prompt files, and agent-specific template files.
+
+    Args:
+        ai_assistant: The AI assistant key (claude, copilot, etc.)
+        script_type: Script type (sh or ps)
+        target_dir: Project root directory
+        bundled_path: Path to bundled resources
+
+    Returns:
+        True if generation succeeded, False otherwise
+    """
+    templates_dir = bundled_path / "templates"
+    agent_templates_dir = bundled_path / "agent_templates"
+    commands_source = templates_dir / "commands"
+
+    if not commands_source.exists():
+        return False
+
+    if ai_assistant not in AGENT_COMMAND_DIRS:
+        return False
+
+    cmd_dir, file_ext, arg_format = AGENT_COMMAND_DIRS[ai_assistant]
+    output_dir = target_dir / cmd_dir
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Process each command template
+    script_variant = script_type
+    for template_file in commands_source.glob("*.md"):
+        name = template_file.stem
+        content = template_file.read_text(encoding="utf-8")
+
+        # Normalize line endings
+        content = content.replace("\r\n", "\n").replace("\r", "\n")
+
+        # Extract description from frontmatter
+        description = ""
+        desc_match = re.search(r'^description:\s*(.+)$', content, re.MULTILINE)
+        if desc_match:
+            description = desc_match.group(1).strip()
+
+        # Extract script command for this variant
+        script_command = ""
+        script_pattern = rf'^\s*{script_variant}:\s*(.+)$'
+        script_match = re.search(script_pattern, content, re.MULTILINE)
+        if script_match:
+            script_command = script_match.group(1).strip()
+
+        # Replace {SCRIPT} placeholder
+        content = content.replace("{SCRIPT}", script_command)
+
+        # Remove scripts: and agent_scripts: sections from frontmatter
+        lines = content.split("\n")
+        filtered_lines = []
+        skip_section = False
+        for line in lines:
+            if re.match(r'^scripts:\s*$', line) or re.match(r'^agent_scripts:\s*$', line):
+                skip_section = True
+                continue
+            if skip_section and line.startswith("  "):
+                continue
+            if skip_section and (line.startswith("---") or (line and not line.startswith(" "))):
+                skip_section = False
+            if not skip_section:
+                filtered_lines.append(line)
+        content = "\n".join(filtered_lines)
+
+        # Apply substitutions
+        content = content.replace("{ARGS}", arg_format)
+
+        # Agent-agnostic placeholders (MUST be replaced before __AGENT__
+        # to avoid substring collision: __AGENT_DIR__ contains __AGENT__)
+        agent_cfg = AGENT_CONFIG[ai_assistant]
+        agent_dir = agent_cfg["folder"].rstrip("/")
+        content = content.replace("__AGENT_DIR__", agent_dir)
+        content = content.replace("__AGENT_NAME__", agent_cfg["name"])
+        content = content.replace("__AGENT_CONTEXT_FILE__", agent_cfg.get("context_file", ""))
+        content = content.replace("__AGENT_CONTEXT_GLOB__", agent_cfg.get("context_glob", ""))
+        content = content.replace("__AGENT_PROJECT_DIR_ENV__", agent_cfg.get("project_dir_env", "$PWD"))
+
+        # Agent key placeholder (e.g. "claude", "opencode")
+        content = content.replace("__AGENT__", ai_assistant)
+        content = _rewrite_paths_for_bundled(content)
+
+        # Write output file
+        if file_ext == "toml":
+            # Escape backslashes for TOML
+            content = content.replace("\\", "\\\\")
+            output_content = f'description = "{description}"\n\nprompt = """\n{content}\n"""\n'
+            output_file = output_dir / f"specforge.{name}.toml"
+        elif file_ext == "agent.md":
+            output_file = output_dir / f"specforge.{name}.agent.md"
+            output_content = content
+        else:
+            output_file = output_dir / f"specforge.{name}.md"
+            output_content = content
+
+        output_file.write_text(output_content, encoding="utf-8")
+
+    # Handle copilot-specific prompt files
+    if ai_assistant == "copilot":
+        prompts_dir = target_dir / ".github" / "prompts"
+        prompts_dir.mkdir(parents=True, exist_ok=True)
+        for agent_file in output_dir.glob("specforge.*.agent.md"):
+            basename = agent_file.stem.replace(".agent", "")
+            prompt_file = prompts_dir / f"{basename}.prompt.md"
+            prompt_file.write_text(f"---\nagent: {basename}\n---\n", encoding="utf-8")
+
+        # Create VS Code settings
+        vscode_dir = target_dir / ".vscode"
+        vscode_dir.mkdir(parents=True, exist_ok=True)
+        vscode_settings = templates_dir / "vscode-settings.json"
+        if vscode_settings.exists():
+            handle_vscode_settings(vscode_settings, vscode_dir / "settings.json", Path("settings.json"))
+
+    # Copy agent-specific files (like GEMINI.md, QWEN.md)
+    if agent_templates_dir.exists():
+        agent_specific_dir = agent_templates_dir / ai_assistant
+        if agent_specific_dir.exists():
+            for f in agent_specific_dir.iterdir():
+                if f.is_file():
+                    shutil.copy2(f, target_dir / f.name)
+
+    return True
+
 
 def build_template_from_bundled(
     ai_assistant: str,
@@ -381,138 +559,8 @@ def build_template_from_bundled(
                     shutil.copytree(item, templates_dest / item.name, dirs_exist_ok=True)
 
         # Generate agent-specific commands
-        commands_source = templates_dir / "commands"
-        if not commands_source.exists():
+        if not generate_agent_commands(ai_assistant, script_type, target_dir, bundled_path):
             return False
-
-        # Determine argument format and output directory based on agent
-        arg_format = "$ARGUMENTS"
-        file_ext = "md"
-
-        agent_dirs = {
-            "claude": (".claude/commands", "md", "$ARGUMENTS"),
-            "gemini": (".gemini/commands", "toml", "{{args}}"),
-            "copilot": (".github/agents", "agent.md", "$ARGUMENTS"),
-            "cursor-agent": (".cursor/commands", "md", "$ARGUMENTS"),
-            "qwen": (".qwen/commands", "toml", "{{args}}"),
-            "opencode": (".opencode/command", "md", "$ARGUMENTS"),
-            "windsurf": (".windsurf/workflows", "md", "$ARGUMENTS"),
-            "codex": (".codex/prompts", "md", "$ARGUMENTS"),
-            "kilocode": (".kilocode/workflows", "md", "$ARGUMENTS"),
-            "auggie": (".augment/commands", "md", "$ARGUMENTS"),
-            "roo": (".roo/commands", "md", "$ARGUMENTS"),
-            "codebuddy": (".codebuddy/commands", "md", "$ARGUMENTS"),
-            "amp": (".agents/commands", "md", "$ARGUMENTS"),
-            "shai": (".shai/commands", "md", "$ARGUMENTS"),
-            "q": (".amazonq/prompts", "md", "$ARGUMENTS"),
-            "qoder": (".qoder/commands", "md", "$ARGUMENTS"),
-            "bob": (".bob/commands", "md", "$ARGUMENTS"),
-        }
-
-        if ai_assistant not in agent_dirs:
-            return False
-
-        cmd_dir, file_ext, arg_format = agent_dirs[ai_assistant]
-        output_dir = target_dir / cmd_dir
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Process each command template
-        script_variant = script_type
-        for template_file in commands_source.glob("*.md"):
-            name = template_file.stem
-            content = template_file.read_text(encoding="utf-8")
-
-            # Normalize line endings
-            content = content.replace("\r\n", "\n").replace("\r", "\n")
-
-            # Extract description from frontmatter
-            description = ""
-            desc_match = re.search(r'^description:\s*(.+)$', content, re.MULTILINE)
-            if desc_match:
-                description = desc_match.group(1).strip()
-
-            # Extract script command for this variant
-            script_command = ""
-            script_pattern = rf'^\s*{script_variant}:\s*(.+)$'
-            script_match = re.search(script_pattern, content, re.MULTILINE)
-            if script_match:
-                script_command = script_match.group(1).strip()
-
-            # Replace {SCRIPT} placeholder
-            content = content.replace("{SCRIPT}", script_command)
-
-            # Remove scripts: and agent_scripts: sections from frontmatter
-            # (simplified version - remove entire lines containing these sections)
-            lines = content.split("\n")
-            filtered_lines = []
-            skip_section = False
-            for line in lines:
-                if re.match(r'^scripts:\s*$', line) or re.match(r'^agent_scripts:\s*$', line):
-                    skip_section = True
-                    continue
-                if skip_section and line.startswith("  "):
-                    continue
-                if skip_section and (line.startswith("---") or (line and not line.startswith(" "))):
-                    skip_section = False
-                if not skip_section:
-                    filtered_lines.append(line)
-            content = "\n".join(filtered_lines)
-
-            # Apply substitutions
-            content = content.replace("{ARGS}", arg_format)
-
-            # Agent-agnostic placeholders (MUST be replaced before __AGENT__
-            # to avoid substring collision: __AGENT_DIR__ contains __AGENT__)
-            agent_cfg = AGENT_CONFIG[ai_assistant]
-            agent_dir = agent_cfg["folder"].rstrip("/")
-            content = content.replace("__AGENT_DIR__", agent_dir)
-            content = content.replace("__AGENT_NAME__", agent_cfg["name"])
-            content = content.replace("__AGENT_CONTEXT_FILE__", agent_cfg.get("context_file", ""))
-            content = content.replace("__AGENT_CONTEXT_GLOB__", agent_cfg.get("context_glob", ""))
-            content = content.replace("__AGENT_PROJECT_DIR_ENV__", agent_cfg.get("project_dir_env", "$PWD"))
-
-            # Agent key placeholder (e.g. "claude", "opencode")
-            content = content.replace("__AGENT__", ai_assistant)
-            content = _rewrite_paths_for_bundled(content)
-
-            # Write output file
-            if file_ext == "toml":
-                # Escape backslashes for TOML
-                content = content.replace("\\", "\\\\")
-                output_content = f'description = "{description}"\n\nprompt = """\n{content}\n"""\n'
-                output_file = output_dir / f"specforge.{name}.toml"
-            elif file_ext == "agent.md":
-                output_file = output_dir / f"specforge.{name}.agent.md"
-                output_content = content
-            else:
-                output_file = output_dir / f"specforge.{name}.md"
-                output_content = content
-
-            output_file.write_text(output_content, encoding="utf-8")
-
-        # Handle copilot-specific prompt files
-        if ai_assistant == "copilot":
-            prompts_dir = target_dir / ".github" / "prompts"
-            prompts_dir.mkdir(parents=True, exist_ok=True)
-            for agent_file in output_dir.glob("specforge.*.agent.md"):
-                basename = agent_file.stem.replace(".agent", "")
-                prompt_file = prompts_dir / f"{basename}.prompt.md"
-                prompt_file.write_text(f"---\nagent: {basename}\n---\n", encoding="utf-8")
-
-            # Create VS Code settings
-            vscode_dir = target_dir / ".vscode"
-            vscode_dir.mkdir(parents=True, exist_ok=True)
-            vscode_settings = templates_dir / "vscode-settings.json"
-            if vscode_settings.exists():
-                shutil.copy2(vscode_settings, vscode_dir / "settings.json")
-
-        # Copy agent-specific files (like GEMINI.md, QWEN.md)
-        if agent_templates_dir.exists():
-            agent_specific_dir = agent_templates_dir / ai_assistant
-            if agent_specific_dir.exists():
-                for f in agent_specific_dir.iterdir():
-                    if f.is_file():
-                        shutil.copy2(f, target_dir / f.name)
 
         if tracker:
             tracker.complete("bundled", "templates built from package")
@@ -1284,6 +1332,304 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
             for f in failures:
                 console.print(f"  - {f}")
 
+def detect_installed_agents(project_path: Path) -> list[str]:
+    """Detect which agents have been installed in this project.
+
+    Scans for specforge command files in each agent's known command directory.
+
+    Returns:
+        List of agent keys (e.g., ['claude', 'gemini', 'cursor-agent'])
+    """
+    detected = []
+    for agent_key, (cmd_dir, _, _) in AGENT_COMMAND_DIRS.items():
+        cmd_path = project_path / cmd_dir
+        if cmd_path.exists() and list(cmd_path.glob("specforge.*")):
+            detected.append(agent_key)
+    return detected
+
+
+def detect_script_type(project_path: Path) -> str:
+    """Detect the script type used in this project.
+
+    Checks .specforge/scripts/ for bash/ or powershell/ directories.
+
+    Returns:
+        'sh' or 'ps', defaulting to platform default if indeterminate.
+    """
+    scripts_dir = project_path / ".specforge" / "scripts"
+    if (scripts_dir / "bash").exists():
+        return "sh"
+    if (scripts_dir / "powershell").exists():
+        return "ps"
+    return "ps" if os.name == "nt" else "sh"
+
+
+def _extract_markdown_body(content: str) -> str:
+    """Extract the markdown body, stripping any YAML frontmatter.
+
+    Handles plain markdown and MDC format with --- fenced frontmatter.
+    """
+    if content.startswith("---"):
+        end_idx = content.find("---", 3)
+        if end_idx != -1:
+            return content[end_idx + 3:].lstrip("\n")
+    return content
+
+
+def _format_context_for_agent(agent_key: str, body: str) -> str:
+    """Wrap markdown body in agent-specific format if needed.
+
+    For Cursor (.mdc), adds YAML frontmatter. For all others, returns body as-is.
+    """
+    if agent_key == "cursor-agent":
+        return f"---\ndescription: SpecForge project context\nglobs: \n---\n\n{body}"
+    return body
+
+
+def sync_context_files(installed_agents: list[str], project_path: Path, tracker: "StepTracker" = None) -> None:
+    """Sync context files across all installed agents using last-modified-wins.
+
+    Finds the most recently modified context file among all installed agents
+    and copies its content to all other agents' context files.
+    Deduplicates shared physical files (e.g., AGENTS.md used by multiple agents).
+    """
+    # Collect existing context files with mtime, deduplicated by resolved path
+    context_files: dict[str, tuple[Path, float]] = {}  # agent_key -> (path, mtime)
+    seen_paths: dict[str, str] = {}  # resolved_path_str -> first agent_key that uses it
+
+    for agent_key in installed_agents:
+        rel_path = AGENT_CONTEXT_PATHS.get(agent_key)
+        if not rel_path:
+            continue
+        full_path = project_path / rel_path
+        if not full_path.exists():
+            continue
+
+        resolved = str(full_path.resolve())
+        if resolved in seen_paths:
+            # Same physical file used by another agent - skip duplicate
+            continue
+        seen_paths[resolved] = agent_key
+        context_files[agent_key] = (full_path, full_path.stat().st_mtime)
+
+    if len(context_files) < 2:
+        if tracker:
+            tracker.complete("context-sync", f"{len(context_files)} file(s), nothing to sync")
+        return
+
+    # Find the most recently modified context file
+    newest_agent = max(context_files, key=lambda k: context_files[k][1])
+    newest_path, _ = context_files[newest_agent]
+    newest_content = newest_path.read_text(encoding="utf-8")
+
+    # Extract the markdown body (strip any format-specific wrapper)
+    body_content = _extract_markdown_body(newest_content)
+
+    synced_count = 0
+    # Write to all other context files
+    for agent_key in installed_agents:
+        rel_path = AGENT_CONTEXT_PATHS.get(agent_key)
+        if not rel_path:
+            continue
+        target_path = project_path / rel_path
+
+        # Skip the source file and deduplicate shared files
+        if str(target_path.resolve()) == str(newest_path.resolve()):
+            continue
+
+        formatted = _format_context_for_agent(agent_key, body_content)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(formatted, encoding="utf-8")
+        synced_count += 1
+
+    if tracker:
+        tracker.complete("context-sync", f"synced from {newest_agent} to {synced_count} file(s)")
+
+
+def sync_agent_working_files(installed_agents: list[str], project_path: Path, tracker: "StepTracker" = None) -> None:
+    """Sync skills/ and agents/specforge/ directories across agent dirs.
+
+    For each file individually, the most recently modified version wins
+    and is copied to all other agent directories.
+    Files that exist only in one agent dir are copied to all others.
+    """
+    sync_subdirs = ["skills", os.path.join("agents", "specforge")]
+    total_synced = 0
+
+    for subdir in sync_subdirs:
+        # Collect all files across all agent dirs for this subdir
+        # file_rel_path -> list of (agent_key, full_path, mtime)
+        all_files: dict[str, list[tuple[str, Path, float]]] = {}
+
+        for agent_key in installed_agents:
+            agent_folder = AGENT_CONFIG[agent_key]["folder"].rstrip("/")
+            working_dir = project_path / agent_folder / subdir
+
+            if not working_dir.exists():
+                continue
+
+            for file_path in working_dir.rglob("*"):
+                if not file_path.is_file():
+                    continue
+                rel = file_path.relative_to(working_dir)
+                rel_str = str(rel)
+                if rel_str not in all_files:
+                    all_files[rel_str] = []
+                all_files[rel_str].append((agent_key, file_path, file_path.stat().st_mtime))
+
+        # For each file, find the newest version and copy to all agent dirs that don't have it or have older
+        for rel_str, sources in all_files.items():
+            # Find the newest version
+            newest = max(sources, key=lambda x: x[2])
+            newest_agent, newest_path, newest_mtime = newest
+            newest_content = newest_path.read_bytes()
+
+            # Copy to all other agent dirs
+            for agent_key in installed_agents:
+                if agent_key == newest_agent:
+                    continue
+                agent_folder = AGENT_CONFIG[agent_key]["folder"].rstrip("/")
+                target_path = project_path / agent_folder / subdir / rel_str
+
+                # Skip if target already has the same or newer content
+                if target_path.exists() and target_path.stat().st_mtime >= newest_mtime:
+                    continue
+
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                target_path.write_bytes(newest_content)
+                # Preserve mtime from source
+                shutil.copystat(newest_path, target_path)
+                total_synced += 1
+
+    if tracker:
+        tracker.complete("working-sync", f"{total_synced} file(s) synced")
+
+
+def update_shared_resources(
+    project_path: Path,
+    script_type: str,
+    bundled_path: Optional[Path],
+    *,
+    force_download: bool = False,
+    tracker: "StepTracker" = None,
+    github_token: str = None,
+    skip_tls: bool = False,
+    debug: bool = False,
+) -> bool:
+    """Update .specforge/scripts/ and .specforge/templates/ from latest templates.
+
+    CRITICAL: .specforge/memory/ is NEVER touched.
+
+    Returns:
+        True if update succeeded, False otherwise.
+    """
+    specify_dir = project_path / ".specforge"
+
+    if bundled_path and not force_download:
+        templates_dir = bundled_path / "templates"
+        scripts_dir = bundled_path / "scripts"
+
+        # Update scripts
+        if scripts_dir.exists():
+            scripts_dest = specify_dir / "scripts"
+            # Remove old scripts and replace with new
+            if scripts_dest.exists():
+                shutil.rmtree(scripts_dest)
+            scripts_dest.mkdir(parents=True, exist_ok=True)
+
+            if script_type == "sh":
+                bash_dir = scripts_dir / "bash"
+                if bash_dir.exists():
+                    shutil.copytree(bash_dir, scripts_dest / "bash", dirs_exist_ok=True)
+            elif script_type == "ps":
+                ps_dir = scripts_dir / "powershell"
+                if ps_dir.exists():
+                    shutil.copytree(ps_dir, scripts_dest / "powershell", dirs_exist_ok=True)
+
+            # Copy any root-level script files
+            for f in scripts_dir.iterdir():
+                if f.is_file():
+                    shutil.copy2(f, scripts_dest / f.name)
+
+        # Update templates (except commands/ and vscode-settings.json)
+        if templates_dir.exists():
+            templates_dest = specify_dir / "templates"
+            templates_dest.mkdir(parents=True, exist_ok=True)
+            for item in templates_dir.iterdir():
+                if item.name in ("commands", "vscode-settings.json"):
+                    continue
+                dest = templates_dest / item.name
+                if item.is_file():
+                    shutil.copy2(item, dest)
+                elif item.is_dir():
+                    shutil.copytree(item, dest, dirs_exist_ok=True)
+
+        return True
+
+    # Fall back to GitHub download for shared resources
+    current_dir = Path.cwd()
+    verify = not skip_tls
+    local_ssl_context = ssl_context if verify else False
+    local_client = httpx.Client(verify=local_ssl_context)
+
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            # Download any agent variant (shared resources are the same)
+            zip_path, meta = download_template_from_github(
+                "claude", temp_path,
+                script_type=script_type,
+                verbose=False,
+                show_progress=False,
+                client=local_client,
+                debug=debug,
+                github_token=github_token
+            )
+
+            # Extract to temp
+            extract_path = temp_path / "extracted"
+            extract_path.mkdir()
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall(extract_path)
+
+            # Find the .specforge dir in extracted content
+            extracted_items = list(extract_path.iterdir())
+            source_dir = extract_path
+            if len(extracted_items) == 1 and extracted_items[0].is_dir():
+                source_dir = extracted_items[0]
+
+            specforge_source = source_dir / ".specforge"
+            if not specforge_source.exists():
+                return False
+
+            # Update scripts
+            scripts_source = specforge_source / "scripts"
+            if scripts_source.exists():
+                scripts_dest = specify_dir / "scripts"
+                if scripts_dest.exists():
+                    shutil.rmtree(scripts_dest)
+                shutil.copytree(scripts_source, scripts_dest, dirs_exist_ok=True)
+
+            # Update templates (NOT memory)
+            templates_source = specforge_source / "templates"
+            if templates_source.exists():
+                templates_dest = specify_dir / "templates"
+                templates_dest.mkdir(parents=True, exist_ok=True)
+                for item in templates_source.iterdir():
+                    dest = templates_dest / item.name
+                    if item.is_file():
+                        shutil.copy2(item, dest)
+                    elif item.is_dir():
+                        shutil.copytree(item, dest, dirs_exist_ok=True)
+
+        return True
+
+    except Exception as e:
+        if tracker:
+            tracker.error("shared", str(e))
+        return False
+
+
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
@@ -1626,6 +1972,483 @@ def check():
 
     if not any(agent_results.values()):
         console.print("[dim]Tip: Install an AI assistant for the best experience[/dim]")
+
+@app.command()
+def migrate(
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be changed without making changes"),
+):
+    """
+    Migrate a project from speckit/specify to specforge.
+
+    This command handles the full migration:
+    1. Rename .specify/ directory to .specforge/
+    2. Rename command files from speckit.* to specforge.* in all agent dirs
+    3. Replace /speckit. references with /specforge. inside command files
+    4. Rename agents/speckit/ subdirectories to agents/specforge/
+    5. Update .vscode/settings.json references
+    6. Preserve all memory files and project-specific content
+
+    Examples:
+        forge migrate              # Run migration
+        forge migrate --dry-run    # Preview changes without applying
+    """
+    show_banner()
+
+    project_path = Path.cwd()
+
+    # Detect what needs migration
+    old_specify_dir = project_path / ".specify"
+    new_specforge_dir = project_path / ".specforge"
+
+    has_old_dir = old_specify_dir.exists()
+    has_new_dir = new_specforge_dir.exists()
+
+    # Scan for old command files (speckit.*) in agent dirs
+    old_command_files: list[tuple[Path, Path]] = []  # (old_path, new_path)
+    old_content_files: list[Path] = []  # files containing /speckit. references
+    old_agent_dirs: list[tuple[Path, Path]] = []  # agents/speckit/ -> agents/specforge/
+
+    for agent_key, (cmd_dir, _, _) in AGENT_COMMAND_DIRS.items():
+        cmd_path = project_path / cmd_dir
+        if not cmd_path.exists():
+            continue
+
+        # Find speckit.* command files to rename
+        for f in cmd_path.glob("speckit.*"):
+            if f.is_file():
+                new_name = f.name.replace("speckit.", "specforge.", 1)
+                old_command_files.append((f, f.parent / new_name))
+
+        # Find specforge.* files with old /speckit. content references
+        for f in cmd_path.glob("specforge.*"):
+            if f.is_file():
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    if "/speckit." in content or "speckit." in content:
+                        old_content_files.append(f)
+                except Exception:
+                    pass
+
+        # Also check speckit.* files for content (they'll be renamed then updated)
+        for f in cmd_path.glob("speckit.*"):
+            if f.is_file():
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    if "/speckit." in content or "speckit." in content:
+                        # Will be handled after rename
+                        pass
+                except Exception:
+                    pass
+
+        # Check for agents/speckit/ subdirectory
+        agent_folder = AGENT_CONFIG[agent_key]["folder"].rstrip("/")
+        old_agents_subdir = project_path / agent_folder / "agents" / "speckit"
+        new_agents_subdir = project_path / agent_folder / "agents" / "specforge"
+        if old_agents_subdir.exists() and old_agents_subdir.is_dir():
+            old_agent_dirs.append((old_agents_subdir, new_agents_subdir))
+
+    # Check .vscode/settings.json for old references
+    vscode_settings_path = project_path / ".vscode" / "settings.json"
+    has_old_vscode = False
+    if vscode_settings_path.exists():
+        try:
+            content = vscode_settings_path.read_text(encoding="utf-8")
+            if "speckit." in content or ".specify/" in content:
+                has_old_vscode = True
+        except Exception:
+            pass
+
+    # Check if anything needs migration
+    needs_migration = has_old_dir or old_command_files or old_content_files or old_agent_dirs or has_old_vscode
+
+    if not needs_migration:
+        console.print("[green]No migration needed.[/green] This project already uses the specforge naming.")
+        if has_new_dir:
+            console.print("[dim]Tip: Run 'forge update' to update templates and sync agents.[/dim]")
+        raise typer.Exit(0)
+
+    # Display what will be done
+    tracker = StepTracker("Migrate to SpecForge")
+
+    if has_old_dir:
+        tracker.add("dir-rename", "Rename .specify/ to .specforge/")
+    if old_command_files:
+        tracker.add("cmd-rename", f"Rename {len(old_command_files)} command file(s)")
+    if old_command_files or old_content_files:
+        tracker.add("content-replace", "Replace speckit references in file content")
+    if old_agent_dirs:
+        tracker.add("agents-rename", f"Rename {len(old_agent_dirs)} agents/speckit/ dir(s)")
+    if has_old_vscode:
+        tracker.add("vscode", "Update .vscode/settings.json")
+    tracker.add("final", "Finalize")
+
+    if dry_run:
+        console.print("[yellow]Dry run mode - no changes will be made.[/yellow]\n")
+        dry_lines = ["[bold]Changes that would be applied:[/bold]", ""]
+
+        if has_old_dir:
+            if has_new_dir:
+                dry_lines.append("  1. Merge .specify/ into existing .specforge/ (preserve memory)")
+            else:
+                dry_lines.append("  1. Rename .specify/ -> .specforge/")
+
+        step = 2
+        if old_command_files:
+            dry_lines.append(f"  {step}. Rename command files:")
+            for old_f, new_f in old_command_files[:5]:
+                dry_lines.append(f"     {old_f.relative_to(project_path)} -> {new_f.name}")
+            if len(old_command_files) > 5:
+                dry_lines.append(f"     ... and {len(old_command_files) - 5} more")
+            step += 1
+
+        all_content_targets = len(old_command_files) + len(old_content_files)
+        if all_content_targets:
+            dry_lines.append(f"  {step}. Replace /speckit. -> /specforge. in {all_content_targets} file(s)")
+            step += 1
+
+        if old_agent_dirs:
+            dry_lines.append(f"  {step}. Rename agents/speckit/ directories:")
+            for old_d, new_d in old_agent_dirs:
+                dry_lines.append(f"     {old_d.relative_to(project_path)} -> {new_d.relative_to(project_path)}")
+            step += 1
+
+        if has_old_vscode:
+            dry_lines.append(f"  {step}. Update .vscode/settings.json references")
+            step += 1
+
+        dry_lines.append("")
+        dry_lines.append("  [bright_black]Tip: Set SPECFORGE_FEATURE instead of SPECIFY_FEATURE in your env[/bright_black]")
+
+        console.print(Panel("\n".join(dry_lines), border_style="yellow", padding=(1, 2)))
+        raise typer.Exit(0)
+
+    # Execute migration
+    with Live(tracker.render(), console=console, refresh_per_second=8, transient=True) as live:
+        tracker.attach_refresh(lambda: live.update(tracker.render()))
+
+        try:
+            # Step 1: Rename .specify/ -> .specforge/
+            if has_old_dir:
+                tracker.start("dir-rename")
+                if has_new_dir:
+                    # Both exist: merge old into new, preserving new's memory
+                    for item in old_specify_dir.rglob("*"):
+                        if not item.is_file():
+                            continue
+                        rel = item.relative_to(old_specify_dir)
+                        dest = new_specforge_dir / rel
+
+                        # Never overwrite memory files from the new dir
+                        if str(rel).startswith("memory") and dest.exists():
+                            continue
+
+                        dest.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy2(item, dest)
+
+                    shutil.rmtree(old_specify_dir)
+                    tracker.complete("dir-rename", "merged into existing .specforge/")
+                else:
+                    old_specify_dir.rename(new_specforge_dir)
+                    tracker.complete("dir-rename", "renamed")
+
+            # Step 2: Rename speckit.* -> specforge.* command files
+            if old_command_files:
+                tracker.start("cmd-rename")
+                renamed_count = 0
+                for old_f, new_f in old_command_files:
+                    if old_f.exists():
+                        # If target already exists, remove old one
+                        if new_f.exists():
+                            old_f.unlink()
+                        else:
+                            old_f.rename(new_f)
+                        renamed_count += 1
+                tracker.complete("cmd-rename", f"{renamed_count} file(s) renamed")
+
+            # Step 3: Replace speckit references in file content
+            if old_command_files or old_content_files:
+                tracker.start("content-replace")
+                # Build set of files to update (renamed files + existing files with old content)
+                files_to_update: set[Path] = set()
+
+                # After rename, the new files need content update
+                for _, new_f in old_command_files:
+                    if new_f.exists():
+                        files_to_update.add(new_f)
+
+                # Existing specforge.* files with old content
+                for f in old_content_files:
+                    if f.exists():
+                        files_to_update.add(f)
+
+                # Also scan all specforge.* files in all agent dirs for any remaining refs
+                for agent_key, (cmd_dir, _, _) in AGENT_COMMAND_DIRS.items():
+                    cmd_path = project_path / cmd_dir
+                    if cmd_path.exists():
+                        for f in cmd_path.glob("specforge.*"):
+                            if f.is_file():
+                                files_to_update.add(f)
+
+                updated_count = 0
+                for f in files_to_update:
+                    try:
+                        content = f.read_text(encoding="utf-8")
+                        new_content = content.replace("/speckit.", "/specforge.")
+                        new_content = new_content.replace("speckit.", "specforge.")
+                        new_content = new_content.replace(".specify/", ".specforge/")
+                        new_content = new_content.replace("SPECIFY_FEATURE", "SPECFORGE_FEATURE")
+                        if new_content != content:
+                            f.write_text(new_content, encoding="utf-8")
+                            updated_count += 1
+                    except Exception:
+                        pass
+
+                tracker.complete("content-replace", f"{updated_count} file(s) updated")
+
+            # Step 4: Rename agents/speckit/ -> agents/specforge/
+            if old_agent_dirs:
+                tracker.start("agents-rename")
+                for old_d, new_d in old_agent_dirs:
+                    if old_d.exists():
+                        if new_d.exists():
+                            # Merge old into new
+                            shutil.copytree(old_d, new_d, dirs_exist_ok=True)
+                            shutil.rmtree(old_d)
+                        else:
+                            old_d.rename(new_d)
+                tracker.complete("agents-rename", f"{len(old_agent_dirs)} dir(s) renamed")
+
+            # Step 5: Update .vscode/settings.json
+            if has_old_vscode:
+                tracker.start("vscode")
+                try:
+                    content = vscode_settings_path.read_text(encoding="utf-8")
+                    new_content = content.replace("speckit.", "specforge.")
+                    new_content = new_content.replace(".specify/", ".specforge/")
+                    if new_content != content:
+                        vscode_settings_path.write_text(new_content, encoding="utf-8")
+                    tracker.complete("vscode", "references updated")
+                except Exception as e:
+                    tracker.error("vscode", str(e))
+
+            tracker.complete("final", "migration complete")
+
+        except Exception as e:
+            tracker.error("final", str(e))
+            console.print(Panel(f"Migration failed: {e}", title="Failure", border_style="red"))
+            raise typer.Exit(1)
+
+    console.print(tracker.render())
+    console.print("\n[bold green]Migration complete.[/bold green]")
+
+    # Post-migration tips
+    tips_lines = [
+        "[bold]Post-migration tips:[/bold]",
+        "",
+        "  - If you use the SPECIFY_FEATURE environment variable, rename it to SPECFORGE_FEATURE",
+        "  - Run [cyan]forge update[/cyan] to regenerate commands from latest templates",
+        "  - Review your agent context files (CLAUDE.md, AGENTS.md, etc.) for any remaining old references",
+    ]
+    console.print(Panel("\n".join(tips_lines), border_style="cyan", padding=(1, 2)))
+
+
+@app.command()
+def update(
+    add: Optional[list[str]] = typer.Option(None, "--add", help="Add new agent(s) to the project (e.g., --add gemini --add cursor-agent)"),
+    script_type: str = typer.Option(None, "--script", help="Script type override: sh or ps (auto-detected if not set)"),
+    force_download: bool = typer.Option(False, "--force-download", help="Force downloading templates from GitHub even if bundled templates are available"),
+    skip_tls: bool = typer.Option(False, "--skip-tls", help="Skip SSL/TLS verification (not recommended)"),
+    debug: bool = typer.Option(False, "--debug", help="Show verbose diagnostic output"),
+    github_token: str = typer.Option(None, "--github-token", help="GitHub token for API requests (or set GH_TOKEN or GITHUB_TOKEN environment variable)"),
+    skip_sync: bool = typer.Option(False, "--skip-sync", help="Skip context file and working file synchronization"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be updated without making changes"),
+):
+    """
+    Update all installed agents, sync context files, and refresh shared resources.
+
+    This command will:
+    1. Detect all agents installed in the current project
+    2. Optionally add new agent(s) with --add
+    3. Update shared resources (.specforge/scripts/, .specforge/templates/)
+    4. Re-generate command files for all detected agents
+    5. Sync context files across agents (last-modified wins)
+    6. Sync skills and sub-agents across agent directories (per-file last-modified wins)
+
+    Memory files (.specforge/memory/) are NEVER touched.
+
+    Examples:
+        forge update                          # Update all installed agents
+        forge update --add gemini             # Add Gemini and update everything
+        forge update --add gemini --add roo   # Add multiple agents
+        forge update --skip-sync              # Update commands only, skip file sync
+        forge update --dry-run                # Preview what would happen
+        forge update --force-download         # Force GitHub template download
+    """
+    show_banner()
+
+    project_path = Path.cwd()
+
+    # Phase 1: Validate project
+    specforge_dir = project_path / ".specforge"
+    if not specforge_dir.exists():
+        console.print("[red]Error:[/red] No .specforge directory found. Run 'forge init --here' first.")
+        raise typer.Exit(1)
+
+    # Phase 2: Detect installed agents
+    installed = detect_installed_agents(project_path)
+
+    if not installed and not add:
+        console.print("[red]Error:[/red] No installed agents detected and no --add flag provided.")
+        console.print("[dim]Tip: Run 'forge init --here --ai <agent>' to set up an agent first.[/dim]")
+        raise typer.Exit(1)
+
+    # Phase 3: Validate --add agents
+    agents_to_add = []
+    if add:
+        for agent_key in add:
+            if agent_key not in AGENT_CONFIG:
+                console.print(f"[red]Error:[/red] Unknown agent '{agent_key}'. Valid: {', '.join(AGENT_CONFIG.keys())}")
+                raise typer.Exit(1)
+            if agent_key in installed:
+                console.print(f"[yellow]Note:[/yellow] '{agent_key}' is already installed, will update.")
+            else:
+                agents_to_add.append(agent_key)
+
+    all_agents = list(dict.fromkeys(installed + agents_to_add))  # preserve order, deduplicate
+
+    # Phase 4: Detect script type
+    detected_script = script_type or detect_script_type(project_path)
+
+    if script_type and script_type not in SCRIPT_TYPE_CHOICES:
+        console.print(f"[red]Error:[/red] Invalid script type '{script_type}'. Choose from: {', '.join(SCRIPT_TYPE_CHOICES.keys())}")
+        raise typer.Exit(1)
+
+    # Phase 5: Display summary
+    summary_lines = [
+        "[cyan]SpecForge Update[/cyan]",
+        "",
+        f"{'Project':<20} [green]{project_path.name}[/green]",
+        f"{'Installed agents':<20} [green]{', '.join(installed) if installed else '(none)'}[/green]",
+    ]
+    if agents_to_add:
+        summary_lines.append(f"{'Adding agents':<20} [cyan]{', '.join(agents_to_add)}[/cyan]")
+    summary_lines.append(f"{'Script type':<20} [green]{detected_script}[/green]")
+    summary_lines.append(f"{'Sync':<20} [green]{'skip' if skip_sync else 'enabled'}[/green]")
+    console.print(Panel("\n".join(summary_lines), border_style="cyan", padding=(1, 2)))
+
+    if dry_run:
+        console.print("[yellow]Dry run mode - no changes will be made.[/yellow]\n")
+        dry_lines = [
+            "[bold]Actions that would be performed:[/bold]",
+            "",
+            f"  1. Update shared resources (.specforge/scripts/, .specforge/templates/)",
+            f"     [bright_black]Memory (.specforge/memory/) will NOT be touched[/bright_black]",
+            f"  2. Regenerate commands for {len(all_agents)} agent(s): {', '.join(all_agents)}",
+        ]
+        if not skip_sync:
+            # Check which context files exist
+            context_info = []
+            for ak in all_agents:
+                rp = AGENT_CONTEXT_PATHS.get(ak)
+                if rp:
+                    fp = project_path / rp
+                    exists = fp.exists()
+                    context_info.append(f"    - {ak}: {rp} {'(exists)' if exists else '(will create)'}")
+            dry_lines.append(f"  3. Sync context files (last-modified wins):")
+            dry_lines.extend(context_info)
+            dry_lines.append(f"  4. Sync skills and sub-agents across agent directories")
+        else:
+            dry_lines.append(f"  3. [bright_black]Sync skipped (--skip-sync)[/bright_black]")
+        dry_lines.append(f"  {4 if not skip_sync else 3}. Ensure scripts are executable")
+        console.print(Panel("\n".join(dry_lines), border_style="yellow", padding=(1, 2)))
+        raise typer.Exit(0)
+
+    # Phase 6: Execute update with tracker
+    tracker = StepTracker("Update SpecForge Project")
+
+    tracker.add("detect", "Detect installed agents")
+    tracker.complete("detect", f"{len(installed)} found" + (f", adding {len(agents_to_add)}" if agents_to_add else ""))
+
+    for key, label in [
+        ("shared", "Update shared resources"),
+        ("commands", "Regenerate agent commands"),
+        ("context-sync", "Sync context files"),
+        ("working-sync", "Sync skills and sub-agents"),
+        ("chmod", "Ensure scripts executable"),
+        ("final", "Finalize"),
+    ]:
+        tracker.add(key, label)
+
+    with Live(tracker.render(), console=console, refresh_per_second=8, transient=True) as live:
+        tracker.attach_refresh(lambda: live.update(tracker.render()))
+
+        try:
+            # Get template source
+            bundled_path = get_bundled_path()
+
+            # --- Update shared resources (scripts + templates, NOT memory) ---
+            tracker.start("shared")
+            success = update_shared_resources(
+                project_path, detected_script, bundled_path,
+                force_download=force_download,
+                tracker=tracker,
+                github_token=github_token,
+                skip_tls=skip_tls,
+                debug=debug,
+            )
+            if success:
+                tracker.complete("shared", "scripts and templates updated, memory preserved")
+            else:
+                tracker.error("shared", "failed to update shared resources")
+
+            # --- Regenerate commands for all agents ---
+            tracker.start("commands")
+            source_path = bundled_path
+            if not source_path:
+                tracker.error("commands", "no bundled templates available")
+            else:
+                cmd_errors = []
+                for agent_key in all_agents:
+                    if not generate_agent_commands(agent_key, detected_script, project_path, source_path):
+                        cmd_errors.append(agent_key)
+
+                if cmd_errors:
+                    tracker.error("commands", f"failed for: {', '.join(cmd_errors)}")
+                else:
+                    tracker.complete("commands", f"{len(all_agents)} agent(s) updated")
+
+            # --- Sync context files ---
+            if not skip_sync:
+                tracker.start("context-sync")
+                sync_context_files(all_agents, project_path, tracker)
+
+                tracker.start("working-sync")
+                sync_agent_working_files(all_agents, project_path, tracker)
+            else:
+                tracker.skip("context-sync", "--skip-sync")
+                tracker.skip("working-sync", "--skip-sync")
+
+            # --- Ensure executable scripts ---
+            ensure_executable_scripts(project_path, tracker=tracker)
+
+            tracker.complete("final", "update complete")
+
+        except Exception as e:
+            tracker.error("final", str(e))
+            console.print(Panel(f"Update failed: {e}", title="Failure", border_style="red"))
+            if debug:
+                import traceback
+                console.print(Panel(traceback.format_exc(), title="Debug Traceback", border_style="magenta"))
+            raise typer.Exit(1)
+
+    console.print(tracker.render())
+    console.print("\n[bold green]Update complete.[/bold green]")
+
+    # Show memory preservation notice
+    memory_dir = specforge_dir / "memory"
+    if memory_dir.exists():
+        console.print(f"[dim]Memory preserved: .specforge/memory/ ({len(list(memory_dir.rglob('*')))} files untouched)[/dim]")
+
 
 @app.command()
 def version():
