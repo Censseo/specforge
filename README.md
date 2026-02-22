@@ -712,7 +712,7 @@ rm gcm-linux_amd64.2.6.1.deb
 
 ## 👥 Maintainers
 
-- Hara Peko ([@localden](https://github.com/censseo))
+- Hara Peko ([@censseo](https://github.com/censseo))
 
 ## 💬 Support
 
