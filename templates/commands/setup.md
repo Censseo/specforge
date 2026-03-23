@@ -47,11 +47,11 @@ Initializes `/docs/{domain}/spec.md` structure.
 
 ---
 
-### 3. Skills
+### 3. Skills & Hooks
 
 Run `/specforge.setup-skills`
 
-Configures skills based on detected frameworks.
+Configures skills based on detected frameworks **and Claude Code hooks** (if agent supports hooks).
 
 **Skip if**: `--skip-skills`
 
@@ -86,7 +86,7 @@ Configures MCP server for testing and automation.
 |-------------|--------|
 | Constitution | ✓ / Skipped |
 | Docs | ✓ / Skipped |
-| Skills | ✓ / Skipped |
+| Skills & Hooks | ✓ / Skipped |
 | Agents | ✓ / Skipped |
 | MCP | ✓ / Skipped |
 

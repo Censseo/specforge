@@ -280,6 +280,8 @@ Use `/specforge.change` when:
 | -------------------------- | -------------------------------------------------------------------------------- |
 | `/specforge.analyze`         | Cross-artifact consistency & coverage analysis                                   |
 | `/specforge.review`          | Code quality analysis, technical debt detection, actionable recommendations      |
+| `/specforge.verify`          | Run sequential quality gates (build, test, lint, typecheck, security, coverage)   |
+| `/specforge.security`        | Comprehensive security audit (OWASP Top 10, secrets, dependencies, auth)         |
 | `/specforge.checklist`       | Generate quality checklists ("unit tests for English")                           |
 | `/specforge.learn`           | Analyze codebase to update architecture registry + module CLAUDE.md files        |
 | `/specforge.merge`           | Merge feature branch to main, consolidate docs to /docs                          |
@@ -294,6 +296,7 @@ Use `/specforge.change` when:
 | `/specforge.setup-skills`       | Configure skills based on detected frameworks                               |
 | `/specforge.setup-agents`       | Generate specialized subagents                                              |
 | `/specforge.setup-mcp`          | Configure MCP server for testing/automation                                 |
+| `/specforge.setup-hooks`        | Generate Claude Code hooks (secret detection, auto-format, quality gates)   |
 
 #### Utility Commands
 
@@ -310,13 +313,18 @@ SpecForge supports two main workflows:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           FULL WORKFLOW (New Features)                       │
 │                                                                              │
-│   idea ──► specify ──► clarify ──► plan ──► tasks ──► implement ──► validate│
+│   idea ──► specify ──► clarify ──► plan ──► tasks ──► implement ──► verify  │
 │     │         │           │          │        │           │            │     │
 │     ▼         ▼           ▼          ▼        ▼           ▼            ▼     │
-│  idea.md   spec.md    (updates)   plan.md  tasks.md    code         report   │
-│            + checklist            research.md                                │
-│                                   data-model.md                              │
-│                                   contracts/                                 │
+│  idea.md   spec.md    (updates)   plan.md  tasks.md    code       quality   │
+│            + checklist            research.md           tests      gates    │
+│                                   data-model.md                    report   │
+│                                   contracts/                                │
+│                                                                             │
+│   ──► validate ──► fix ──► merge ──► learn                                  │
+│          │          │         │         │         ┌──────────┐              │
+│          ▼          ▼         ▼         ▼         │ security │ (any time)  │
+│       report    (loop)     /docs   registry      └──────────┘              │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
