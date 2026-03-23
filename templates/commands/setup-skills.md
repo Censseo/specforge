@@ -68,6 +68,20 @@ description: {Framework} best practices and patterns for this project
 
 ---
 
+## Phase 3: Configure Hooks
+
+Run `/specforge.setup-hooks` to generate Claude Code hooks based on detected tools (FORMATTER, LINTER, TEST_RUNNER).
+
+The hooks provide automated quality checks:
+- **PreToolUse**: Secret detection, linter config protection
+- **PostToolUse**: Auto-format after edits, typecheck for TypeScript
+- **SessionStart**: Load project constitution and architecture context
+- **Stop**: Coverage and test reminders
+
+**Skip if**: User passed `--skip-hooks` or agent does not support hooks (hooks are Claude Code specific).
+
+---
+
 ## Completion
 
 ```markdown
@@ -78,8 +92,14 @@ description: {Framework} best practices and patterns for this project
 |-------|-----------|------|
 | {skill} | {framework} | {path} |
 
+### Hooks
+| Status | Profile |
+|--------|---------|
+| ✓ Generated / Skipped | {profile} |
+
 ### Next Steps
 - Review generated skills
 - Add project-specific conventions
+- Review hooks in __AGENT_DIR__/settings.local.json
 - Run /specforge.setup-agents to use skills in agents
 ```
