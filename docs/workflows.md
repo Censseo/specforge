@@ -6,13 +6,15 @@ This guide describes the different workflows available in SpecForge and when to 
 
 | Scenario | Workflow | Commands |
 |----------|----------|----------|
-| New feature from scratch | Full Workflow | idea → specify → clarify → plan → tasks → implement → validate → merge |
-| New feature (simple) | Standard Workflow | specify → plan → tasks → implement → merge |
+| New feature from scratch | Full Workflow | idea → specify → clarify → plan → tasks → implement → verify → validate → merge |
+| New feature (simple) | Standard Workflow | specify → plan → tasks → implement → verify → merge |
 | Bug fix | Quick Change | change |
 | Spec clarification | Quick Change | change |
 | User feedback | Quick Change | change |
 | Code refinement | Quick Change | change |
-| Major refactoring | Full Workflow | specify → plan → tasks → implement → merge |
+| Major refactoring | Full Workflow | specify → plan → tasks → implement → verify → merge |
+| Pre-merge quality check | Quality Gates | verify |
+| Security assessment | Security Audit | security |
 
 ---
 
@@ -34,14 +36,21 @@ The complete Spec-Driven Development workflow for building new features from scr
 │                                              contracts/                                  │
 │                                              (/docs read)                                │
 │                                                                                          │
-│    ┌──────────┐    ┌─────┐    ┌───────┐    ┌───────┐                                    │
-│───►│ validate │───►│ fix │───►│ merge │───►│ learn │                                    │
-│    └──────────┘    └─────┘    └───────┘    └───────┘                                    │
-│         │              │           │            │                                        │
-│         ▼              ▼           ▼            ▼                                        │
-│    validation/    (loop back)   /docs/     architecture-registry.md                      │
-│    report.md                    + main     {module}/CLAUDE.md                            │
-│    bugs/                                                                                 │
+│    ┌────────┐    ┌──────────┐    ┌─────┐    ┌───────┐    ┌───────┐                      │
+│───►│ verify │───►│ validate │───►│ fix │───►│ merge │───►│ learn │                      │
+│    └────────┘    └──────────┘    └─────┘    └───────┘    └───────┘                      │
+│         │              │              │           │            │                          │
+│         ▼              ▼              ▼           ▼            ▼                          │
+│    quality         validation/    (loop back)   /docs/     architecture-registry.md      │
+│    gates           report.md                    + main     {module}/CLAUDE.md            │
+│    report          bugs/                                                                 │
+│                                                                                          │
+│    ┌──────────┐                                                                          │
+│    │ security │  (can be run at any time, recommended before merge)                      │
+│    └──────────┘                                                                          │
+│         │                                                                                │
+│         ▼                                                                                │
+│    security/report.md                                                                    │
 │                                                                                          │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -203,7 +212,40 @@ Final: Polish & cross-cutting
 
 ---
 
-### Phase 7: Validation
+### Phase 7: Verification (Quality Gates)
+
+**Command**: `/specforge.verify`
+
+**Purpose**: Run sequential technical quality gates before validation. Each gate must pass before the next one runs (fail-fast).
+
+**Semantic Anchors Applied**:
+- Continuous Integration (Martin Fowler)
+- Fail Fast
+- Quality Gate (Sonar-style pass/fail)
+- Shift Left
+
+**Quality Gates** (executed in order):
+1. **Build** - Compile/build the project
+2. **Test** - Run unit/integration tests
+3. **Lint** - Code style and static analysis
+4. **Typecheck** - Type verification (TypeScript, mypy, etc.)
+5. **Security** - Dependency vulnerability scan
+6. **Coverage** - Code coverage threshold (default: 80%)
+
+**Options**:
+- `--fix` - Auto-fix lint and format issues
+- `--skip-build`, `--skip-test`, `--skip-lint`, etc. - Skip specific gates
+- `--threshold N` - Coverage threshold percentage
+- `--report` - Generate a report file
+
+**Handoffs**:
+- → `/specforge.fix` if errors are found
+- → `/specforge.security` for deeper security audit
+- → `/specforge.review` for deeper code review
+
+---
+
+### Phase 8: Validation
 
 **Command**: `/specforge.validate`
 
@@ -229,7 +271,7 @@ Final: Polish & cross-cutting
 
 ---
 
-### Phase 8: Fix (If Needed)
+### Phase 9: Fix (If Needed)
 
 **Command**: `/specforge.fix`
 
@@ -346,6 +388,14 @@ For small, focused modifications without the full workflow overhead.
  report        report        + specs context
                               + module context
                               + sub-module context
+
+┌──────────┐    ┌──────────┐
+│  verify  │───►│ security │
+└──────────┘    └──────────┘
+     │               │
+     ▼               ▼
+ Quality gate    Security
+ report          audit report
 ```
 
 **`/specforge.analyze`** - Cross-artifact consistency
@@ -358,6 +408,21 @@ For small, focused modifications without the full workflow overhead.
 - Security vulnerabilities (OWASP Top 10)
 - Technical debt classification
 - Generates improvement tasks
+
+**`/specforge.verify`** - Technical quality gates
+- Sequential gates: build → test → lint → typecheck → security → coverage
+- Fail-fast: stops at first failing gate
+- Auto-fix mode for lint/format issues
+- Configurable coverage threshold
+- Run before `/specforge.validate` or `/specforge.merge`
+
+**`/specforge.security`** - Comprehensive security audit
+- OWASP Top 10 vulnerability scan
+- Hardcoded secrets detection
+- Dependency vulnerability audit
+- Authentication/authorization coverage analysis
+- Severity levels: critical, high, medium
+- Can be scoped to specific directories or changed files only
 
 **`/specforge.learn`** - Pattern discovery and documentation
 - Analyze existing codebase and all feature specifications
@@ -407,21 +472,29 @@ For small, focused modifications without the full workflow overhead.
 | Phase | Command | Input | Output |
 |-------|---------|-------|--------|
 | **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
-| | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
-| | `/specforge.setup-agents` | - | agents + skills + MCP |
+| | `/specforge.setup-constitution` | - | constitution |
+| | `/specforge.setup-docs` | from-code/from-docs/from-specs | /docs/{domain}/ |
+| | `/specforge.setup-skills` | - | Framework-specific skills |
+| | `/specforge.setup-agents` | - | Specialized subagents |
+| | `/specforge.setup-mcp` | - | MCP server config |
+| | `/specforge.setup-hooks` | --profile minimal/standard/strict | Claude Code hooks |
 | Explore | `/specforge.idea` | Raw idea | idea.md, features/ |
 | Specify | `/specforge.specify` | Description | spec.md |
 | Clarify | `/specforge.clarify` | - | Updated spec.md |
 | Plan | `/specforge.plan` | Tech stack | plan.md, research.md, data-model.md, contracts/ |
 | Tasks | `/specforge.tasks` | - | tasks.md |
 | Implement | `/specforge.implement` | - | Code, task-results/ |
+| **Verify** | `/specforge.verify` | --fix, --skip-*, --threshold | Quality gate report |
+| **Validate** | `/specforge.validate` | - | validation/, bugs/ |
+| Fix | `/specforge.fix` | Bug ID | Fixed code |
 | **Merge** | `/specforge.merge` | - | /docs/{domain}/spec.md updated |
 | **Learn** | `/specforge.learn` | - | architecture-registry, specs context, module + sub-module context |
-| Validate | `/specforge.validate` | - | validation/, bugs/ |
-| Fix | `/specforge.fix` | Bug ID | Fixed code |
 | Change | `/specforge.change` | Description | Updated code/spec |
 | Analyze | `/specforge.analyze` | - | Coverage report |
 | Review | `/specforge.review` | Scope | Tech debt report |
+| **Security** | `/specforge.security` | --scope, --severity, --fix | Security audit report |
+| Breakdown | `/specforge.breakdown` | - | Detailed task plans |
+| Issues | `/specforge.taskstoissues` | - | GitHub issues |
 
 ---
 
