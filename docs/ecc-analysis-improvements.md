@@ -449,6 +449,79 @@ learn-eval → instinct-status → evolve → Create SKILL.md → Reference in C
 
 ---
 
+## 12. Patterns Avancés (Insights supplémentaires ECC)
+
+### a) Orchestration séquentielle par phases avec handoff fichier
+
+ECC recommande un pattern strict de passage entre agents :
+```
+RESEARCH (explore agent) → fichier research-summary.md
+    → PLAN (planner agent) → fichier plan.md
+        → IMPLEMENT (TDD-guide) → code
+            → REVIEW (code-reviewer) → rapport
+                → VERIFY (build-error-resolver) → validation
+```
+
+Chaque agent reçoit UN input clair et produit UN output clair. Les outputs deviennent les inputs de la phase suivante. Jamais de phase sautée.
+
+**Recommandation pour SpecForge** : Ce pattern est déjà au coeur de SpecForge (spec → plan → tasks → implement → validate), mais ECC insiste sur le `/clear` entre agents pour réinitialiser le contexte. SpecForge pourrait recommander explicitement un compact/clear entre les phases majeures du workflow.
+
+### b) Two-Instance Kickoff pour nouveaux projets
+
+ECC propose de démarrer deux instances Claude en parallèle :
+- **Instance 1 (Scaffolding)** : structure projet, configs, CLAUDE.md, rules
+- **Instance 2 (Deep Research)** : PRD, diagrammes d'architecture, références documentaires
+
+**Recommandation pour SpecForge** : Proposer ce pattern dans la documentation de `/specforge.setup`, où une instance gère le scaffold technique pendant qu'une autre fait la recherche pour la constitution et l'architecture registry.
+
+### c) Git Worktrees pour parallélisation
+
+```bash
+git worktree add ../project-feature-a feature-a
+cd ../project-feature-a && claude
+```
+
+Permet de lancer plusieurs instances Claude sur des branches différentes du même repo sans conflits.
+
+**Recommandation pour SpecForge** : Documenter ce pattern dans le workflow multi-features, particulièrement utile quand plusieurs specs sont en cours d'implémentation simultanée.
+
+### d) Routage de modèle par complexité
+
+| Tâche | Modèle recommandé | Économie |
+|-------|-------------------|----------|
+| Exploration, search, docs simples | Haiku | ~90% vs Opus |
+| Implémentation multi-fichiers, PR reviews (90% des tâches) | Sonnet | ~60% vs Opus |
+| Architecture complexe, sécurité, debug difficile | Opus | Référence |
+
+**Recommandation pour SpecForge** : Intégrer cette logique dans les commandes — par ex. `/specforge.specify` et `/specforge.plan` pourraient recommander Opus, `/specforge.implement` Sonnet, et les subagents de recherche Haiku.
+
+### e) Injection dynamique de contexte
+
+```bash
+alias claude-dev='claude --system-prompt "$(cat ~/.claude/contexts/dev.md)"'
+alias claude-review='claude --system-prompt "$(cat ~/.claude/contexts/review.md)"'
+```
+
+Plutôt que de tout charger dans CLAUDE.md, injecter le contexte pertinent via le CLI selon le mode de travail.
+
+**Recommandation pour SpecForge** : Fournir des fichiers de contexte pré-générés par phase SDD (context-specify.md, context-implement.md, context-review.md) que l'utilisateur peut injecter via alias.
+
+### f) Sécurité comme design système
+
+ECC insiste sur des principes de sécurité structurels (pas juste des checklists) :
+- Identités d'agent séparées des comptes personnels
+- Credentials à durée de vie courte et scope limité
+- Travail non-fiable dans des containers/devcontainers
+- Réseau sortant bloqué par défaut
+- Lecture interdite sur `~/.ssh/`, `~/.aws/`, `**/.env*`
+- Approbation requise pour shell, réseau sortant, déploiement
+- Logging de tous les appels d'outils et approbations
+- **36% des 3,984 skills publiques scannées contenaient des injections de prompt** (étude Snyk)
+
+**Recommandation pour SpecForge** : Ajouter un avertissement dans `/specforge.setup-skills` sur les risques d'injection dans les skills tierces, et recommander un scan des skills/hooks/MCP comme des artefacts de supply chain.
+
+---
+
 ## Conclusion
 
 Le repo ECC est un **catalogue de bonnes pratiques opérationnelles** (hooks, security, CI/CD, token optimization) là où SpecForge est un **framework méthodologique** (spec-driven development, workflows structurés).
