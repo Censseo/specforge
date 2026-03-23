@@ -7,6 +7,15 @@ All notable changes to the Forge CLI and templates are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.26] - 2026-03-23
+
+### Added
+
+- **`--stack` option for `forge init`**: Pre-load a skill stack when initializing a project. Available stacks: `python-django`, `typescript-nextjs`, `golang-api`, `java-springboot`. The skill template is automatically copied into the agent's `skills/` directory so it is active from the first session.
+  - Example: `forge init my-project --ai claude --stack python-django`
+  - Example: `forge init my-project --ai claude --stack typescript-nextjs`
+- **Quality gates pre-condition in `/specforge.merge`**: The merge command now recommends running `/specforge.verify` before the git merge step. If any gate fails, the command stops and suggests `/specforge.fix` before retrying.
+
 ## [0.1.0] - 2026-02-08
 
 ### BREAKING CHANGE - Project Rebranding

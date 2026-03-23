@@ -283,6 +283,14 @@ AGENT_CONFIG = {
 
 SCRIPT_TYPE_CHOICES = {"sh": "POSIX Shell (bash/zsh)", "ps": "PowerShell"}
 
+# Available skill stacks for --stack option
+SKILL_STACKS = {
+    "python-django": "Python / Django",
+    "typescript-nextjs": "TypeScript / Next.js",
+    "golang-api": "Go / REST API",
+    "java-springboot": "Java / Spring Boot",
+}
+
 # Maps agent key -> (command_dir_relative, file_extension, argument_format)
 AGENT_COMMAND_DIRS = {
     "claude": (".claude/commands", "md", "$ARGUMENTS"),
@@ -1712,11 +1720,65 @@ def update_shared_resources(
         return False
 
 
+def _install_skill_stack(
+    project_path: Path,
+    ai_assistant: str,
+    stack: str,
+    tracker: "StepTracker" = None,
+) -> None:
+    """Copy the specified skill stack template into the agent's skills directory.
+
+    The skill files are sourced from `.specforge/templates/skills/<stack>/`
+    (already present after template extraction) and copied into
+    `<agent_dir>/skills/<stack>/`.
+
+    Args:
+        project_path: Project root directory.
+        ai_assistant: AI assistant key (e.g. 'claude').
+        stack: Skill stack key (e.g. 'python-django').
+        tracker: Optional step tracker for progress updates.
+    """
+    if tracker:
+        tracker.start("stack")
+
+    try:
+        agent_cfg = AGENT_CONFIG.get(ai_assistant)
+        if not agent_cfg:
+            if tracker:
+                tracker.skip("stack", "unknown agent")
+            return
+
+        agent_dir = agent_cfg["folder"].rstrip("/")
+        skills_source = project_path / ".specforge" / "templates" / "skills" / stack
+
+        # Fall back to bundled templates when the specforge dir isn't populated yet
+        if not skills_source.exists():
+            bundled = get_bundled_path()
+            if bundled:
+                skills_source = bundled / "templates" / "skills" / stack
+
+        if not skills_source.exists():
+            if tracker:
+                tracker.skip("stack", f"skill template '{stack}' not found")
+            return
+
+        skills_dest = project_path / agent_dir / "skills" / stack
+        skills_dest.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(skills_source, skills_dest, dirs_exist_ok=True)
+
+        if tracker:
+            tracker.complete("stack", f"{stack} → {agent_dir}/skills/{stack}")
+    except Exception as exc:
+        if tracker:
+            tracker.error("stack", str(exc))
+
+
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
     ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor-agent, qwen, opencode, codex, windsurf, kilocode, auggie, codebuddy, amp, shai, q, bob, or qoder "),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
+    stack: str = typer.Option(None, "--stack", help="Pre-load a skill stack: python-django, typescript-nextjs, golang-api, or java-springboot"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
     no_git: bool = typer.Option(False, "--no-git", help="Skip git repository initialization"),
     here: bool = typer.Option(False, "--here", help="Initialize project in the current directory instead of creating a new one"),
@@ -1750,6 +1812,8 @@ def init(
         specify init --here
         specify init --here --force  # Skip confirmation when current directory not empty
         specify init --here --force-download  # Force GitHub download instead of bundled templates
+        specify init my-project --ai claude --stack python-django   # Pre-load Django skill
+        specify init my-project --ai claude --stack typescript-nextjs  # Pre-load Next.js skill
     """
 
     show_banner()
@@ -1807,6 +1871,9 @@ def init(
     if not here:
         setup_lines.append(f"{'Target Path':<15} [dim]{project_path}[/dim]")
 
+    if stack:
+        setup_lines.append(f"{'Stack':<15} [green]{SKILL_STACKS.get(stack, stack)}[/green]")
+
     console.print(Panel("\n".join(setup_lines), border_style="cyan", padding=(1, 2)))
 
     should_init_git = False
@@ -1860,8 +1927,14 @@ def init(
         else:
             selected_script = default_script
 
+    if stack and stack not in SKILL_STACKS:
+        console.print(f"[red]Error:[/red] Invalid stack '{stack}'. Choose from: {', '.join(SKILL_STACKS.keys())}")
+        raise typer.Exit(1)
+
     console.print(f"[cyan]Selected AI assistant:[/cyan] {selected_ai}")
     console.print(f"[cyan]Selected script type:[/cyan] {selected_script}")
+    if stack:
+        console.print(f"[cyan]Selected skill stack:[/cyan] {stack} ({SKILL_STACKS[stack]})")
 
     tracker = StepTracker("Initialize Specify Project")
 
@@ -1883,6 +1956,7 @@ def init(
         ("chmod", "Ensure scripts executable"),
         ("cleanup", "Cleanup"),
         ("git", "Initialize git repository"),
+        ("stack", "Install skill stack"),
         ("final", "Finalize")
     ]:
         tracker.add(key, label)
@@ -1900,6 +1974,11 @@ def init(
             download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token, force_download=force_download)
 
             ensure_executable_scripts(project_path, tracker=tracker)
+
+            if stack:
+                _install_skill_stack(project_path, selected_ai, stack, tracker=tracker)
+            else:
+                tracker.skip("stack", "no --stack specified")
 
             if not no_git:
                 tracker.start("git")

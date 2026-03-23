@@ -179,6 +179,7 @@ The `forge` command supports the following options:
 | `<project-name>`       | Argument | Name for your new project directory (optional if using `--here`, or use `.` for current directory)                                                                                           |
 | `--ai`                 | Option   | AI assistant to use: `claude`, `gemini`, `copilot`, `cursor-agent`, `qwen`, `opencode`, `codex`, `windsurf`, `kilocode`, `auggie`, `roo`, `codebuddy`, `amp`, `shai`, `q`, `bob`, or `qoder` |
 | `--script`             | Option   | Script variant to use: `sh` (bash/zsh) or `ps` (PowerShell)                                                                                                                                  |
+| `--stack`              | Option   | Pre-load a skill stack: `python-django`, `typescript-nextjs`, `golang-api`, or `java-springboot`                                                                                             |
 | `--ignore-agent-tools` | Flag     | Skip checks for AI agent tools like Claude Code                                                                                                                                              |
 | `--no-git`             | Flag     | Skip git repository initialization                                                                                                                                                           |
 | `--here`               | Flag     | Initialize project in the current directory instead of creating a new one                                                                                                                    |
@@ -195,6 +196,12 @@ forge init my-project
 
 # Initialize with specific AI assistant
 forge init my-project --ai claude
+
+# Initialize with a skill stack pre-loaded
+forge init my-project --ai claude --stack python-django
+forge init my-project --ai claude --stack typescript-nextjs
+forge init my-project --ai claude --stack golang-api
+forge init my-project --ai claude --stack java-springboot
 
 # Initialize with Cursor support
 forge init my-project --ai cursor-agent

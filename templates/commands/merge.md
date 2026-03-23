@@ -53,9 +53,15 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    - Ensure branch is up-to-date with remote
    - If dirty or behind → **STOP** and report
 
+5. **Quality gates** (recommended):
+   - Ask: "Run quality gates before merging? (recommended)"
+   - If yes → run `/specforge.verify` and wait for all gates to pass
+   - If any gate fails → **STOP** and report: "Fix errors with `/specforge.fix` then retry"
+   - If user declines → proceed with a warning: "Skipping quality gates — merge at your own risk"
+
 ### Phase 2: Documentation Consolidation
 
-5. **Determine target domains** (a feature can span multiple domains):
+6. **Determine target domains** (a feature can span multiple domains):
 
    a. **Check if domains already specified** in spec.md:
       - Look for `**Domain**:` or `**Domains**:` metadata in spec header
@@ -91,14 +97,14 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
    **NOTE**: Domains are user-defined, not hardcoded. The command suggests but user decides.
 
-6. **Ensure /docs structure exists**:
+7. **Ensure /docs structure exists**:
 
    ```bash
    # Create directories for all target domains
    mkdir -p docs/{domain-1} docs/{domain-2} ...
    ```
 
-7. **Consolidate spec into each /docs/{domain}/spec.md** (OpenSpec-style):
+8. **Consolidate spec into each /docs/{domain}/spec.md** (OpenSpec-style):
 
    Repeat for **each target domain**, extracting only the relevant portions of the feature spec:
 
@@ -157,7 +163,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    > See also: [Related feature in {other-domain}](/docs/{other-domain}/spec.md#feature-name)
    ```
 
-8. **Update /docs/README.md** (domain index):
+9. **Update /docs/README.md** (domain index):
 
    Update the index for **all domains** that were created or modified:
 
@@ -181,7 +187,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ### Phase 3: Git Operations
 
-9. **Merge into main**:
+10. **Merge into main**:
 
     ```bash
     # Switch to main
@@ -199,7 +205,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
     Docs: /docs/{domain-1}/spec.md, /docs/{domain-2}/spec.md, ..."
     ```
 
-10. **Commit documentation updates** (if not already included):
+11. **Commit documentation updates** (if not already included):
 
     ```bash
     git add docs/
@@ -213,7 +219,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ### Phase 4: Post-Merge Actions
 
-11. **Offer to run /specforge.learn**:
+12. **Offer to run /specforge.learn**:
 
     ```markdown
     Feature merged successfully.
@@ -227,13 +233,13 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
     If yes → execute `/specforge.learn {feature-id}`
 
-12. **Push to remote**:
+13. **Push to remote**:
 
     ```bash
     git push origin main
     ```
 
-13. **Cleanup (optional)**:
+14. **Cleanup (optional)**:
 
     Ask user:
     ```markdown
@@ -246,7 +252,7 @@ The `/docs` directory becomes the **single source of truth** for business and fu
 
 ### Phase 5: Summary
 
-14. **Report completion**:
+15. **Report completion**:
 
     ```markdown
     ## Merge Complete
