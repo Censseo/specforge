@@ -1,6 +1,6 @@
 [project]
 name = "forge-cli"
-version = "0.0.25"
+version = "0.0.26"
 description = "SpecForge CLI - An enhanced toolkit for Spec-Driven Development with advanced quality analysis, modular workflows, and intelligent code generation."
 requires-python = ">=3.11"
 dependencies = [
