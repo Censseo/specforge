@@ -254,16 +254,22 @@ and writes a gate record before the next pipeline starts.
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `/specforge.workflow`  | **Orchestrator** - design → build → qa, resuming from file state, stopping on BLOCK  |
 | `/specforge.design`    | specify → clarify → plan → adversarial review → checklists → tasks → analyze → complexity analysis |
-| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass, then review → corrections |
-| `/specforge.qa`        | validate ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
-| `/specforge.harness`   | The adversarial review harness on any target, with any lens selection                |
+| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections → **test plan** |
+| `/specforge.qa`        | execute `test-plan.md` ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
+| `/specforge.testplan`  | The adversarial test plan on its own, for regenerating or scoping it                 |
+| `/specforge.harness`   | The adversarial review harness on any target, with any lens or focus selection       |
 
 ```bash
 /specforge.workflow Add OAuth2 login with Google and GitHub
 /specforge.design Add OAuth2 login with Google and GitHub
 /specforge.build phase 3
-/specforge.harness src/api/ --lens security,data
+/specforge.testplan                 # regenerate the plan, or /specforge.testplan smoke
+/specforge.harness --focus architecture, design patterns, security, performance
 ```
+
+**Models**: a slash command runs under one model for its whole execution. `/specforge.workflow` is
+therefore a convenience - to use a different model per pipeline, run `design`, `build` and `qa`
+separately and switch between them. Their handoffs chain them for you.
 
 Each pipeline hands off to the next, so `/specforge.design` chains into `/specforge.build` and on into
 `/specforge.qa`. Every stage has a gate check: a failure that would make the next stage meaningless
@@ -274,8 +280,15 @@ Artifacts a pipeline produces beyond the usual ones:
 | File | Written by | Purpose |
 | ---- | ---------- | ------- |
 | `complexity-analysis.md` | design | Per-phase DIRECT / BREAKDOWN verdict and lens exposure, consumed by build |
+| `test-plan.md` | build | Adversarial scenarios across 10 coverage classes, executed by qa |
 | `gates/{phase}-{date}.md` | each pipeline | Verdict, criteria table, findings, carried conditions |
 | `qa-report.md` | qa | Final validation status, rounds, remaining failures |
+
+`test-plan.md` is written at the **end** of build, not from the spec: by then the pipeline knows what
+was actually built, where it deviated from the plan, and every gotcha the implementation hit. Those
+deviations are the most productive source of test scenarios there is, and they do not exist yet at
+design time. `/specforge.merge` then runs one final adversarial review - architecture, design patterns,
+security, performance - before anything lands.
 
 The macro commands are orchestrators, not replacements: they call the same commands and skills as the
 individual ones, so the two styles mix freely.
@@ -416,7 +429,7 @@ guidance applies outside the slash commands too.
 `idea-shaping`, `spec-authoring`, `requirements-clarification`, `technical-planning`,
 `task-decomposition`, `implementation-execution`, `integration-validation`, `bug-diagnosis`,
 `artifact-analysis`, `quality-checklists`, `focused-change`, `feature-merge`, `codebase-learning`,
-`constitution-authoring`, `semantic-anchors`, `specforge-workflow`.
+`constitution-authoring`, `semantic-anchors`, `specforge-workflow`, `adversarial-test-planning`.
 
 **Adversarial review harness** - makes validations that can actually fail:
 
@@ -425,6 +438,7 @@ guidance applies outside the slash commands too.
 | `adversarial-review` | The harness: framing, lens routing, finding schema, severity rubric, verdicts |
 | `finding-verification` | Falsification pass - every finding must survive an attempt to prove it wrong |
 | `quality-gates` | Entry and exit criteria for each phase, blocking rules, gate records |
+| `adversarial-test-planning` | Scenario coverage designed to break the feature, not confirm it |
 
 **Domain lenses** - each one a red-team perspective with probes, attack moves, a severity
 calibration and its known false positives:
@@ -456,7 +470,11 @@ Lenses are selected automatically from the artifact type and the risk signals pr
 
 ```bash
 /specforge.harness --lens security,concurrency,data
+/specforge.harness --focus architecture, design patterns, security, performance
 ```
+
+`--focus` accepts free text naming domains, in any language, and maps it to lenses - so it stands in
+for an agent's own built-in `/review` command without depending on one.
 
 Skills you edit locally are preserved across `forge update`: the CLI tracks what it installed and
 only refreshes files that are still unmodified.

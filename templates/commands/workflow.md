@@ -37,9 +37,9 @@ Chains the three macro pipelines and stops at the first gate that blocks.
 
 1. Locate the feature and determine the resume point
 2. Run `/specforge.design` (unless already cleared)
-3. Run `/specforge.build` (unless already cleared)
-4. Run `/specforge.qa`
-5. Report and hand off to `/specforge.merge`
+3. Run `/specforge.build` (unless already cleared) - it ends by writing `test-plan.md`
+4. Run `/specforge.qa` - it executes `test-plan.md`
+5. Report and hand off to `/specforge.merge`, which runs the final adversarial review
 
 Each pipeline runs non-interactively and produces its own gate record. This command adds the
 resumption logic and the stop-on-block rule between them.
@@ -54,6 +54,7 @@ Run `{SCRIPT}` and parse the paths. Then read state from files, not from the con
 | ---- | --------- |
 | `FEATURE_DIR/gates/` | The last verdict per phase and its open conditions |
 | `FEATURE_DIR/complexity-analysis.md` | Whether design completed and which phases need breakdown |
+| `FEATURE_DIR/test-plan.md` | Whether build completed; the scenarios QA will execute |
 | `tasks.md` | What is done, partial, blocked |
 | `validation/bugs/` | What is open |
 | `task-results/` | What actually happened, including deviations |
@@ -67,6 +68,7 @@ earlier one is wasted work.
 | Spec but no plan, or design gate BLOCK | Design |
 | Plan and design gate cleared, no tasks or no complexity-analysis.md | Design (from step 6) |
 | Tasks exist, build gate absent or BLOCK | Build |
+| Build gate cleared but no test-plan.md | Build (from its test-plan step), or `/specforge.testplan` |
 | Build gate cleared, qa gate absent or BLOCK | QA |
 | All three gates cleared | Report and offer `/specforge.merge` |
 
@@ -124,6 +126,24 @@ look before it becomes code.
 ### Next Action
 {one concrete step}
 ```
+
+## Models
+
+A slash command runs under one model for its whole execution - it cannot switch models between
+pipelines. This matters, because the three pipelines want different things: design rewards a stronger
+reasoning model, build is long and mechanical, QA is mostly execution and diagnosis.
+
+So this command is a convenience, not the recommended default:
+
+| You want | Do this |
+| -------- | ------- |
+| One model for everything, minimum supervision | Run `/specforge.workflow` |
+| A different model per pipeline | Run `/specforge.design`, then `/specforge.build`, then `/specforge.qa` separately, switching the model between them. The `handoffs` on each command chain them for you |
+| A different model for one step inside a pipeline | Set it on the specialised agents in `__AGENT_DIR__/agents/specforge/` - `/specforge.implement` delegates per task and honours each agent's own model |
+
+Where your agent supports a `model:` key in command frontmatter, setting it on `design.md`, `build.md`
+and `qa.md` individually gives you per-pipeline models while keeping the chaining. Do not set one here:
+it would pin every pipeline to the same model, which is the problem this note exists to describe.
 
 ## Rules
 

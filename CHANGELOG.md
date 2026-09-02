@@ -46,6 +46,36 @@ stopping to ask, red-team their output, and gate before handing off.
 - `/specforge.qa` writes `qa-report.md` with the validation rounds and remaining failures
 - The workflow resumes from file state, so it survives session loss
 
+#### Adversarial test plan
+
+`/specforge.build` now ends by writing `FEATURE_DIR/test-plan.md`, and `/specforge.qa` executes it
+instead of deriving scenarios from the spec at run time.
+
+- New skill `adversarial-test-planning`: ten coverage classes (happy path, boundary, invalid input,
+  permission, state, failure, concurrency, regression, data integrity, exploratory), derivation moves
+  that invert every MUST / NEVER / ONLY in the spec, and a scenario format with preconditions, exact
+  steps, an observable expected outcome and a "Fails if" clause
+- New command `/specforge.testplan` to produce or regenerate it standalone (`smoke`, `US2`, a class)
+- The plan is written at the **end** of build on purpose: `task-results/` deviations and gotchas are
+  the most productive source of scenarios, and they do not exist at design time
+- Scenarios that cannot run are marked `BLOCKED`; the plan carries an explicit Not Covered section
+- `/specforge.validate` gains a test-plan mode: execute by TP id in priority order, report blocked
+  scenarios as blocked, and let the plan's "Fails if" decide pass or fail
+- QA retry rounds re-run the failing scenarios plus every P1, since a fix can break what passed
+
+#### Final adversarial review before merge
+
+- `/specforge.merge` gains Phase 1.5: a full-branch adversarial pass focused on architecture, design
+  patterns, security and performance - what is expensive to change after merge. BLOCK stops the merge
+- `/specforge.harness` gains `--focus`, mapping free text naming domains (in any language) to lenses,
+  so it stands in for an agent's built-in `/review` command without depending on one
+
+#### Model selection
+
+- `/specforge.workflow` documents that a slash command runs under one model for its whole execution.
+  For a different model per pipeline, run `design`, `build` and `qa` separately - their handoffs chain
+  them - or set models on the specialised agents that `/specforge.implement` delegates to
+
 #### Non-interactive and scoped invocation contracts
 
 The sub-commands the pipelines call now document the arguments the pipelines send:

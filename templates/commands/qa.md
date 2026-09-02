@@ -1,7 +1,8 @@
 ---
-description: Macro command that validates the implementation end-to-end, runs a fix/validate loop up to 3 times if failures are found, then red-teams the release before the gate.
+description: Macro command that executes the adversarial test plan end-to-end, runs a fix/validate loop up to 3 times if failures are found, then red-teams the release before the gate.
 skills:
   - specforge-workflow
+  - adversarial-test-planning
   - adversarial-review
   - finding-verification
   - quality-gates
@@ -48,8 +49,8 @@ Consider the user input before proceeding (if not empty).
 This macro command runs end-to-end validation with an automated fix/validate loop, then attacks what
 only exists once the system runs.
 
-1. Load test credentials and context
-2. Run `/specforge.validate`
+1. Load the test plan, test credentials and context
+2. Run `/specforge.validate` against `test-plan.md`
 3. If partial/failed: `/specforge.fix` then re-validate (loop max 3x)
 4. Early exit if no progress between retries
 5. Adversarial release review through the operational lenses
@@ -63,6 +64,14 @@ Run `{SCRIPT}` from repo root and parse JSON for FEATURE_DIR.
 
 Load test credentials from `TEST_USER_CREDENTIALS.md` in project root. Extract usernames, passwords,
 and service URLs for use during validation.
+
+Read `FEATURE_DIR/test-plan.md` - the adversarial test plan written by `/specforge.build`. **This is
+the primary input**: it enumerates the scenarios to run, their preconditions, their expected outcomes
+and what counts as a failure. Its Not Covered section tells you what nobody is checking.
+
+If `test-plan.md` is missing, run `/specforge.testplan` to produce it before validating. Falling back
+to the spec's acceptance scenarios alone means testing what was intended rather than what was built,
+which is materially thinner coverage - if you do fall back, say so in the report.
 
 Read `FEATURE_DIR/gates/build-*.md` for the build gate verdict and any conditions carried into QA.
 Read `tasks.md` to determine what is actually testable - testing a story whose tasks are unfinished
@@ -83,11 +92,14 @@ Repeat while `current_retry <= MAX_RETRIES` and `validation_status != PASSED`:
 
 ```text
 Skill: specforge.validate
-Args: Use TEST_USER_CREDENTIALS.md for test users. Run E2E tests via browser. Verify style cohesion. Start the agent-service if needed. Start all required infrastructure. Do not ask for confirmation - proceed with all scenarios.
+Args: Execute FEATURE_DIR/test-plan.md - run every scenario in it, in priority order, using its preconditions, steps and expected outcomes. Use TEST_USER_CREDENTIALS.md for test users. Run E2E tests via browser. Verify style cohesion. Start the agent-service if needed. Start all required infrastructure. Do not ask for confirmation - proceed with all scenarios.
 ```
 
+On a retry round, scope it: `Execute the scenarios that failed in the previous round, plus every P1
+scenario` - a fix can break something that passed, so the P1 set is re-run every time.
+
 Parse results: extract overall status (PASSED/FAILED/PARTIAL/INCOMPLETE), failure count, list of
-failing scenarios.
+failing scenarios **by TP id**, and the count of scenarios that were BLOCKED rather than run.
 
 `INCOMPLETE` means execution errors prevented testing. It is not a failure count of zero and it is
 never a pass - treat it per the exit conditions below.
@@ -176,10 +188,13 @@ Save to `FEATURE_DIR/qa-report.md` and display:
 **Final Pass Rate**: {rate}%
 
 ### Summary
-- Scenarios tested: {total}
-- Passed: {count}
-- Failed: {count}
+- Test plan: {FEATURE_DIR}/test-plan.md ({total} scenarios)
+- Executed: {count} | Passed: {count} | Failed: {count} | Blocked: {count}
+- P1 pass rate: {rate}%
 - Fixed during QA: {count}
+
+### Not Covered
+{the test plan's Not Covered section, plus anything BLOCKED at run time}
 
 ### Adversarial Release Review
 - Lenses run: {list} | Skipped: {lens - reason}
@@ -198,6 +213,8 @@ Save to `FEATURE_DIR/qa-report.md` and display:
 
 ## Error Handling
 
+- **No test-plan.md**: run `/specforge.testplan` first; if that also fails, fall back to the spec's
+  acceptance scenarios and state the reduced coverage in the report
 - **No TEST_USER_CREDENTIALS.md**: Warn but continue
 - **Validate fails to start (infra issue)**: Report and stop, status = INCOMPLETE, gate = BLOCK with
   reason `not-evaluable` - an environment that never ran proves nothing and is never a PASS

@@ -31,8 +31,18 @@ writes a gate record to `specs/{feature}/gates/` that returns PASS, PASS WITH CO
 | Pipeline | Command | Chain | Gate |
 |----------|---------|-------|------|
 | Design | `/specforge.design` | specify → clarify (auto) → plan → **adversarial review** → checklists (auto) → tasks → analyze (auto) → complexity analysis | D1-D10 |
-| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections | B1-B9 |
-| QA | `/specforge.qa` | validate ⇄ fix loop (max 3, early exit on no progress) → **adversarial release review** | Q1-Q8 |
+| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections → **test plan** | B1-B9 |
+| QA | `/specforge.qa` | execute `test-plan.md` ⇄ fix loop (max 3, early exit on no progress) → **adversarial release review** | Q1-Q8 |
+| Merge | `/specforge.merge` | **final adversarial review** → docs consolidation → merge | - |
+
+### Models
+
+A slash command runs under one model for its whole execution; it cannot switch between pipelines.
+`/specforge.workflow` is therefore a convenience rather than the default. To use a different model per
+pipeline - a stronger one for design, a cheaper one for the long mechanical build - run the three
+separately and switch between them; their handoffs chain them for you. For per-step variation inside a
+pipeline, set models on the specialised agents in `.specforge`-installed `agents/specforge/`, which
+`/specforge.implement` honours per task.
 
 ### Non-interactive by design
 
@@ -70,11 +80,60 @@ A phase needs breakdown if it meets two or more of: more than 8 tasks, 3+ domain
 dependency chains, REFACTOR or complex EXTEND tasks, or exposure to security / migration /
 concurrency / public contract changes.
 
+### The adversarial test plan
+
+Build ends by writing `FEATURE_DIR/test-plan.md`, and QA executes it. The timing is the point: at the
+end of build the pipeline knows what was actually built, where it deviated from the plan, and every
+gotcha the implementation hit. A plan derived from the spec alone tests what was intended; those
+deviations are where the bugs are, and they do not exist yet at design time.
+
+The plan covers ten classes, and an empty class is a hole rather than a clean bill:
+
+| Class | Covers |
+|-------|--------|
+| C1 Happy path | The primary flow per user story |
+| C2 Boundary | 0, 1, max, max+1, empty, unicode, negative, duplicate |
+| C3 Invalid input | Malformed, wrong type, missing field, injection-shaped |
+| C4 Permission | What each actor cannot do, including another user's records by id |
+| C5 State | Illegal transitions, expired / deleted / already-processed entities |
+| C6 Failure | Dependency down, slow, garbage; partial failure mid-operation |
+| C7 Concurrency | Same action twice, simultaneously, out of order; stale edit |
+| C8 Regression | What existed before and shares code with the change |
+| C9 Data integrity | Is the stored state afterwards exactly what it should be |
+| C10 Exploratory | Charters, not scripts |
+
+Each scenario carries preconditions, exact steps, an expected **observable** outcome, and a "Fails if"
+clause - which exists so a marginal result cannot be rationalised into a pass. Scenarios that cannot
+run here are marked `BLOCKED` with a reason, and the plan has an explicit Not Covered section: a plan
+that silently omits what it could not test reports better coverage than it has.
+
+Regenerate or scope it on its own with `/specforge.testplan`, `/specforge.testplan smoke`, or
+`/specforge.testplan US2`.
+
+### The final review before merge
+
+`/specforge.merge` runs one last adversarial pass over the whole feature branch, focused on
+architecture, design patterns, security and performance - the things that are expensive to change once
+merged. It catches two things nothing earlier could: the shape of the whole (duplication across
+phases, an abstraction that grew three incompatible callers), and the fact that whatever merges becomes
+the example the next feature copies. A BLOCK stops the merge; merging a known Critical is an explicit
+decision, not a default.
+
+Run the same pass on demand with:
+
+```bash
+/specforge.harness --focus architecture, design patterns, security, performance
+```
+
+`--focus` takes free text naming domains, in any language, and maps it to lenses - so it replaces an
+agent's built-in `/review` without depending on one.
+
 ### The QA loop
 
-QA runs validate, and if scenarios fail, fix, then re-validate - up to three rounds. It exits early
-when the failure count stops dropping, because a round that fixes nothing will not be rescued by the
-next one. Findings from the adversarial release review do **not** re-enter the loop: the loop is for
+QA runs validate against `test-plan.md`, and if scenarios fail, fix, then re-validate - up to three
+rounds. Retry rounds re-run the failing scenarios **plus every P1**, because a fix can break something
+that passed. It exits early when the failure count stops dropping, because a round that fixes nothing
+will not be rescued by the next one. Findings from the adversarial release review do **not** re-enter the loop: the loop is for
 scenario failures, and those findings go to the gate where a human decides.
 
 ### What each phase reviews
@@ -516,7 +575,8 @@ For small, focused modifications without the full workflow overhead.
 | | `/specforge.design` | Description or empty | spec.md, plan.md, tasks.md, checklists/, complexity-analysis.md, gates/design-*.md |
 | | `/specforge.build` | Optional `phase N` | Code, task-results/, reviews/, gates/build-*.md |
 | | `/specforge.qa` | - | validation/, qa-report.md, gates/qa-*.md |
-| | `/specforge.harness` | Target + lenses | Findings and a verdict |
+| | `/specforge.testplan` | Optional scope | test-plan.md |
+| | `/specforge.harness` | Target + lenses or --focus | Findings and a verdict |
 | **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
 | | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
 | | `/specforge.setup-agents` | - | agents + skills + MCP |

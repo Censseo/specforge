@@ -43,13 +43,48 @@ Runs a red-team pass over any target and falsifies its own findings before repor
 /specforge.harness --lens security,data         # explicit lens selection
 /specforge.harness --phase design               # the design-phase default lens set
 /specforge.harness --depth deep                 # every triggered lens, no cap
+/specforge.harness --focus architecture, design patterns, security, performance
+/specforge.harness adversarial review focused on architecture and security
 ```
 
 Parse the arguments for: a target (path, glob, artifact or diff range), `--lens` (comma-separated lens
-ids), `--phase` (`design` | `build` | `qa`), and `--depth` (`quick` | `standard` | `deep`).
+ids), `--phase` (`design` | `build` | `qa`), `--depth` (`quick` | `standard` | `deep`), and `--focus`
+(free text naming domains).
 
 Defaults: target is the diff against the base branch; lenses come from the routing table; depth is
 `standard` (up to 8 lenses).
+
+### Focus Areas
+
+`--focus` - and any free-text phrasing that names domains, in any language - maps to lenses. Use this
+table; when a term matches nothing, say so rather than silently reviewing something else.
+
+| Focus term | Lenses |
+| ---------- | ------ |
+| architecture, structure, coupling, boundaries, layering | `lens-architecture` |
+| design patterns, patterns, abstractions, code design | `lens-architecture`, `lens-maintainability` |
+| security, sécurité, authn, authz, injection, secrets | `lens-security` |
+| performance, perf, latency, scalability, load | `lens-performance` |
+| data, database, migrations, schema, integrity | `lens-data` |
+| reliability, resilience, failure modes, retries | `lens-reliability` |
+| concurrency, races, threading, idempotency | `lens-concurrency` |
+| tests, testing, coverage, test quality | `lens-testing` |
+| api, contracts, endpoints, breaking changes | `lens-api-contract` |
+| quality, maintainability, code smells, dead code, tech debt | `lens-maintainability` |
+| privacy, gdpr, rgpd, personal data | `lens-privacy-compliance` |
+| accessibility, a11y, wcag | `lens-accessibility` |
+| ux, copy, error messages, user flows | `lens-ux-content` |
+| i18n, l10n, localisation, timezones, currency | `lens-i18n` |
+| observability, logging, metrics, tracing, alerting | `lens-observability` |
+| operations, deployment, rollback, config, cost | `lens-operations` |
+| dependencies, supply chain, licences, ci | `lens-supply-chain` |
+| llm, ai, prompts, agents, rag | `lens-llm-integration` |
+| domain, model, entities, invariants | `lens-domain-model` |
+| requirements, spec, ambiguity | `lens-requirements` |
+| everything, full, all | every lens whose risk trigger fires, `--depth deep` |
+
+A focus **narrows** the pass to what was asked. It does not suppress a Critical finding another lens
+would have caught in passing - report that too, marked as out of the requested focus.
 
 ## Step 1 - Frame
 
@@ -58,7 +93,8 @@ radius, reversibility. This sets the rigor for everything that follows.
 
 ## Step 2 - Select Lenses
 
-If `--lens` was given, use exactly those. Otherwise consult
+If `--lens` was given, use exactly those. If `--focus` (or equivalent free text) was given, map it
+through the focus table above. Otherwise consult
 `adversarial-review/references/lens-registry.md`:
 
 1. Every lens marked mandatory for the artifact types in the target.

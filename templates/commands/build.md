@@ -1,9 +1,10 @@
 ---
-description: Macro command that runs breakdown (if needed) and implementation for all phases, with an adversarial review per increment, followed by code review and corrections.
+description: Macro command that runs breakdown (if needed) and implementation for all phases, with an adversarial review per increment, followed by code review, corrections and an adversarial test plan for QA.
 skills:
   - specforge-workflow
   - adversarial-review
   - finding-verification
+  - adversarial-test-planning
   - quality-gates
 lenses:
   - lens-maintainability
@@ -23,7 +24,7 @@ semantic_anchors:
 handoffs:
   - label: QA Validation
     agent: specforge.qa
-    prompt: Run the QA validation pipeline for this feature
+    prompt: Run the QA validation pipeline against test-plan.md
     send: true
   - label: Re-build Phase
     agent: specforge.build
@@ -53,7 +54,8 @@ feature and apply corrections.
 3. Code review after all phases
 4. Add correction tasks to tasks.md
 5. Implement corrections
-6. Record the build gate verdict
+6. Produce the adversarial test plan for QA
+7. Record the build gate verdict
 
 ## Detailed Steps
 
@@ -184,7 +186,25 @@ Args: Execute the review correction tasks only (the last phase in tasks.md). Do 
 Re-run the lenses that produced each correction against the fixed code. A correction task marked
 complete whose finding still reproduces is not complete - reopen it.
 
-### Step 5: Build Gate Record
+### Step 5: Adversarial Test Plan
+
+The build now knows things the spec never did: what was actually built, where it deviated, and every
+gotcha the implementers hit. That knowledge is worth more as a test plan than as a memory.
+
+```text
+Skill: specforge.testplan
+Args: (no additional arguments)
+```
+
+This writes `FEATURE_DIR/test-plan.md` - the full adversarial scenario set across the ten coverage
+classes, with a requirement-to-scenario table and an explicit Not Covered section. `/specforge.qa`
+executes it.
+
+**Gate check**: verify test-plan.md exists and that every requirement appears either in the
+requirement-to-scenario table or in Not Covered with a recorded reason. A requirement in neither is a
+coverage hole the QA run will not find, because it will not look.
+
+### Step 6: Build Gate Record
 
 Apply the `quality-gates` skill, build gate criteria B1-B9. Evidence is command output and file
 anchors, not assertion: run the project's own build, lint, typecheck and test commands and quote what
@@ -193,14 +213,14 @@ they printed.
 Write `FEATURE_DIR/gates/build-{date}.md` with the verdict, the criteria table, the findings and the
 conditions carried into QA.
 
-### Step 6: Registry Update
+### Step 7: Registry Update
 
 Extract patterns, technology decisions, component conventions and discovered anti-patterns from
 `task-results/*.md` into `/memory/architecture-registry.md`, tagged
 `<!-- Added from {feature} ({date}) -->`. "No new patterns - followed existing conventions" is a valid
 and useful entry.
 
-### Step 7: Report
+### Step 8: Report
 
 ```markdown
 ## Build Pipeline Complete
@@ -224,11 +244,14 @@ and useful entry.
 - Corrections applied: {count}/{total}
 - Lenses run: {list} | Skipped: {lens - reason}
 
+### Test Plan
+- `test-plan.md`: {n} scenarios ({p1} P1) | Requirements without a scenario: {n}
+
 ### Carried Conditions
 | ID | Condition | Tracked as |
 
 ### Next Step
-Run `/specforge.qa` to validate the implementation end-to-end.
+Run `/specforge.qa` to validate the implementation end-to-end against `test-plan.md`.
 ```
 
 Report failing checks with their output. A task whose verification failed is `[~]`, never `[X]`.
@@ -241,3 +264,5 @@ Report failing checks with their output. A task whose verification failed is `[~
 - **Phase implementation failure**: Log and continue to next phase
 - **Critical confirmed finding on a production path**: fix before continuing, or stop and report
 - **Review failure**: Log error, skip corrections, report to user
+- **Test plan generation failure**: WARN and continue to the gate; QA will fall back to the spec's
+  acceptance scenarios, with materially thinner coverage - say so in the report

@@ -2,6 +2,7 @@
 description: Run integration tests by starting services, executing acceptance scenarios, and reporting results
 skills:
   - integration-validation
+  - adversarial-test-planning
   - lens-testing
   - lens-accessibility
 semantic_anchors:
@@ -39,6 +40,24 @@ Apply the **`integration-validation`** skill: the Gherkin-to-action translation,
 exploratory pass, the status determination rules and the bug report format.
 
 The report must reflect reality. Everything downstream is built on it.
+
+## Test Plan Mode
+
+When the input names a test plan (`FEATURE_DIR/test-plan.md`, written by `/specforge.testplan`), that
+file is the source of scenarios - not `spec.md`. It carries preconditions, exact steps, expected
+outcomes and an explicit "Fails if" per scenario, so there is nothing to infer.
+
+- Execute scenarios in priority order: P1, then P2, then P3.
+- Report results **by TP id**, so a retry round can name exactly what to re-run.
+- A scenario the plan marks `BLOCKED`, or that you cannot run here, is reported as blocked - never as
+  passed, and never silently dropped.
+- The plan's "Fails if" clause decides pass or fail. It exists precisely so a marginal result cannot
+  be rationalised into a pass.
+- Still run the exploratory pass alongside. The plan is a floor, not a ceiling: anything odd you
+  notice outside it is a finding worth filing.
+
+Without a test plan, fall back to the acceptance scenarios in `spec.md` and say so in the report -
+that is coverage of what was intended, not of what was built.
 
 ## Prerequisites
 

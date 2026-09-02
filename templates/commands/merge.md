@@ -1,9 +1,16 @@
 ---
-description: Merge feature branch into main and consolidate documentation into /docs
+description: Run a final adversarial review, then merge the feature branch into main and consolidate documentation into /docs
 skills:
   - feature-merge
   - codebase-learning
+  - adversarial-review
+  - finding-verification
   - quality-gates
+lenses:
+  - lens-architecture
+  - lens-maintainability
+  - lens-security
+  - lens-performance
 semantic_anchors:
   - Documentation as Code     # Treat docs like code - versioned, reviewed, maintained
   - Single Source of Truth    # One place for each piece of information
@@ -33,10 +40,11 @@ User can specify: branch name (default: current branch), or "dry-run" to preview
 This command completes the feature lifecycle by:
 
 1. **Verifying** all tasks are completed
-2. **Merging** the feature branch into main
-3. **Consolidating** feature documentation into `/docs` (persistent reference)
-4. **Optionally** running `/specforge.learn` to update architecture registry and local CLAUDE.md files
-5. **Pushing** main to remote
+2. **Reviewing** the finished feature adversarially, one last time
+3. **Merging** the feature branch into main
+4. **Consolidating** feature documentation into `/docs` (persistent reference)
+5. **Optionally** running `/specforge.learn` to update architecture registry and local CLAUDE.md files
+6. **Pushing** main to remote
 
 The `/docs` directory becomes the **single source of truth** for business and functional specifications, referenced by future `/specforge.specify` and `/specforge.plan` executions.
 
@@ -65,6 +73,39 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    - Ensure working directory is clean
    - Ensure branch is up-to-date with remote
    - If dirty or behind → **STOP** and report
+
+### Phase 1.5: Final Adversarial Review
+
+The last look at the whole feature before it becomes history. Everything until now reviewed increments,
+diffs and running behavior; this reviews the finished thing as a coherent piece of the codebase.
+
+```text
+Skill: specforge.harness
+Args: --focus architecture, design patterns, security, performance --depth deep. Target: the full feature branch diff against the base branch.
+```
+
+That focus set is the default because it covers what is expensive to change after merge: structural
+decisions, the patterns future features will copy, security holes that reach production, and
+performance characteristics that become the baseline. Add lenses whose risk triggers fired in this
+feature - a migration, a public contract, personal data, a new dependency.
+
+Read the verdict:
+
+| Verdict | Action |
+| ------- | ------ |
+| PASS | Continue to Phase 2 |
+| PASS WITH CONDITIONS | Continue; each condition becomes a tracked follow-up with an owner, recorded in the merge report |
+| BLOCK | **STOP.** Report the blocking findings. Merging a known Critical is a decision for the user to make explicitly, not a default |
+
+Two things this pass catches that nothing earlier could:
+
+- **Patterns worth copying, and patterns worth not copying.** Whatever merges becomes the example the
+  next feature follows. A shortcut that survives here is a convention by tomorrow.
+- **The shape of the whole.** Per-increment reviews saw one phase each. Duplication across phases,
+  an abstraction that grew three incompatible callers, a boundary that eroded - only visible now.
+
+Findings that are cheap to fix are fixed before the merge, not filed. A follow-up task on a merged
+branch competes with new work and usually loses.
 
 ### Phase 2: Documentation Consolidation
 
