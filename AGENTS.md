@@ -14,6 +14,33 @@ The toolkit supports multiple AI coding assistants, allowing teams to use their 
 
 - Any changes to `__init__.py` for the Specify CLI require a version rev in `pyproject.toml` and addition of entries to `CHANGELOG.md`.
 
+## Commands and Skills
+
+SpecForge separates **method** from **orchestration**:
+
+| Location | Role |
+| -------- | ---- |
+| `templates/skills/<name>/SKILL.md` | The methodology: frameworks, rubrics, probes, output contracts. Model-invoked - the agent loads it when the work matches |
+| `templates/commands/<name>.md` | A thin orchestrator: frontmatter, script wiring, file paths, report contract, and a `## Method` section naming the skills it applies |
+
+Rules when changing either:
+
+- **New methodology goes in a skill, not a command.** A command that grows a rubric or a checklist is
+  a signal that a skill is missing.
+- Every command declares the skills it uses in `skills:` frontmatter, and names them in `## Method`.
+- Skills go through the same substitution as commands (`{SCRIPT}` from their own `scripts:`
+  frontmatter, `__AGENT_DIR__`, `__AGENT_CONTEXT_FILE__`, path rewriting), so they can reference
+  scripts and agent paths.
+- Review lenses follow one shape: frontmatter with a `lens:` block, "Load First", a probe table, attack
+  moves, a severity calibration, common false positives, and an output section. Adding a lens means
+  adding it to `templates/skills/adversarial-review/references/lens-registry.md` - the routing table
+  and the risk triggers - or nothing will select it.
+- Every finding a lens produces must carry a concrete failure path and an anchored location. This is
+  enforced in prose by `adversarial-review` and `finding-verification`; keep new lenses consistent with it.
+- `forge update` refreshes only skill files that still match what SpecForge installed, tracked in
+  `<agent>/skills/.specforge-skills.json`. Do not remove or rename that manifest without a migration.
+- Markdown lint runs on `**/*.md`. New skill and command files must be clean.
+
 ## Adding New Agent Support
 
 This section explains how to add support for new AI agents/assistants to the Specify CLI. Use this guide as a reference when integrating new AI tools into the Spec-Driven Development workflow.
@@ -124,6 +151,22 @@ case $agent in
     generate_commands windsurf md "\$ARGUMENTS" "$base_dir/.windsurf/workflows" "$script" ;;
 esac
 ```
+
+##### Add to agent_meta
+
+`agent_meta()` mirrors `AGENT_CONFIG` from `src/forge_cli/__init__.py` and drives both the
+`__AGENT_*__` placeholder substitution and the skills installation directory. Keep the two in sync:
+
+```bash
+agent_meta() {
+  case $1 in
+    # ... existing agents ...
+    new-agent-cli) echo '.newagent|New Agent Display Name|AGENTS.md|**/*AGENTS.md|$PWD' ;;
+  esac
+}
+```
+
+Skills are installed automatically for every agent from this entry - no extra case statement needed.
 
 #### 4. Update GitHub Release Script
 

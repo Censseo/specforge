@@ -1,5 +1,7 @@
 ---
 description: Analyze codebase and specs to update architecture registry, project state context, and local __AGENT_CONTEXT_FILE__ files (module and sub-module conventions)
+skills:
+  - codebase-learning
 semantic_anchors:
   - Pattern Mining           # Extract recurring solutions from code
   - ADR                      # Architecture Decision Records, Michael Nygard
@@ -13,6 +15,12 @@ semantic_anchors:
 ```text
 $ARGUMENTS
 ```
+
+## Method
+
+Apply the **`codebase-learning`** skill for the extraction method and the source priority rule:
+`/docs/{domain}/spec.md` is authoritative for completed features; `specs/*/` supplements it with
+in-progress work. Manual sections in every generated file are preserved exactly.
 
 Consider the user input before proceeding. User can specify: "all" (full analysis), feature names, specific directories, or "specs-only" / "modules-only" for partial updates.
 

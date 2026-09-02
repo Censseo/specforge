@@ -1,5 +1,9 @@
 ---
 description: Merge feature branch into main and consolidate documentation into /docs
+skills:
+  - feature-merge
+  - codebase-learning
+  - quality-gates
 semantic_anchors:
   - Documentation as Code     # Treat docs like code - versioned, reviewed, maintained
   - Single Source of Truth    # One place for each piece of information
@@ -11,6 +15,15 @@ semantic_anchors:
 ```text
 $ARGUMENTS
 ```
+
+## Method
+
+Apply the **`feature-merge`** skill for the consolidation rules: `specs/` is working memory, `/docs` is
+durable memory, domain specs are merged never overwritten, and conflicts stop for a decision rather
+than being resolved silently.
+
+Before starting, confirm the QA gate is PASS or PASS WITH CONDITIONS (`FEATURE_DIR/gates/qa-*.md`), and
+list any conditions being carried across the merge with their owners.
 
 Consider the user input before proceeding (if not empty).
 User can specify: branch name (default: current branch), or "dry-run" to preview without merging.

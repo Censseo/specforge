@@ -244,6 +244,27 @@ forge check
 
 After running `forge init`, your AI coding agent will have access to these slash commands for structured development:
 
+#### Phase Workflow Commands
+
+Run the three-phase workflow. Each phase orchestrates the relevant skills, runs an adversarial
+review through domain lenses, and writes a gate record before the next phase starts:
+
+| Command                | Description                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `/specforge.workflow`  | **Orchestrator** - runs design → build → qa, stopping at any gate that blocks      |
+| `/specforge.design`    | Specify, clarify and plan, then red-team the design artifacts and clear the gate   |
+| `/specforge.build`     | Decompose into tasks, implement test-first, review each increment, clear the gate  |
+| `/specforge.qa`        | Validate against the running system, analyse, review, clear the release gate       |
+| `/specforge.harness`   | Run the adversarial review harness on any target with any lens selection           |
+
+```bash
+/specforge.workflow Add OAuth2 login with Google and GitHub
+/specforge.harness src/api/ --lens security,data
+```
+
+The phase commands are orchestrators, not replacements: they call the same underlying skills as the
+individual commands below, so the two styles can be mixed freely.
+
 #### Core Workflow Commands
 
 Essential commands for the Spec-Driven Development workflow:
@@ -304,7 +325,34 @@ Use `/specforge.change` when:
 
 ### Workflow Overview
 
-SpecForge supports two main workflows:
+SpecForge supports three workflows: the three-phase workflow with quality gates, the classic
+step-by-step full workflow, and the quick workflow for small changes.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    PHASE WORKFLOW (/specforge.workflow)                      │
+│                                                                              │
+│    ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                │
+│    │   DESIGN    │      │    BUILD    │      │     QA      │                │
+│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
+│    │ specify     │      │ tasks       │      │ validate    │                │
+│    │ clarify     │ ───► │ implement   │ ───► │ analyze     │                │
+│    │ plan        │      │             │      │ review      │                │
+│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
+│    │ adversarial │      │ adversarial │      │ adversarial │                │
+│    │ review      │      │ review      │      │ review      │                │
+│    │ (8 lenses)  │      │ (8 lenses)  │      │ (8 lenses)  │                │
+│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
+│    │ DESIGN GATE │      │ BUILD GATE  │      │  QA GATE    │                │
+│    │ D1..D10     │      │ B1..B9      │      │  Q1..Q8     │                │
+│    └─────────────┘      └─────────────┘      └─────────────┘                │
+│                                                                              │
+│   Each gate returns PASS / PASS WITH CONDITIONS / BLOCK and writes a record  │
+│   to specs/{feature}/gates/. A blocked gate stops the next phase.            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+The classic step-by-step commands remain available and are what the phases call:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -341,6 +389,63 @@ SpecForge supports two main workflows:
 ```
 
 See [Workflow Guide](./docs/workflows.md) for detailed workflow documentation.
+
+### Skills
+
+`forge init` and `forge update` install SpecForge's skill library into your agent's skills directory
+(`.claude/skills/`, `.opencode/skills/`, and so on). Skills carry the methodology; commands are thin
+orchestrators that invoke them. Agents also load skills on their own when the work matches, so the
+guidance applies outside the slash commands too.
+
+**Method skills** - one per workflow discipline:
+
+`idea-shaping`, `spec-authoring`, `requirements-clarification`, `technical-planning`,
+`task-decomposition`, `implementation-execution`, `integration-validation`, `bug-diagnosis`,
+`artifact-analysis`, `quality-checklists`, `focused-change`, `feature-merge`, `codebase-learning`,
+`constitution-authoring`, `semantic-anchors`, `specforge-workflow`.
+
+**Adversarial review harness** - makes validations that can actually fail:
+
+| Skill | Role |
+| ----- | ---- |
+| `adversarial-review` | The harness: framing, lens routing, finding schema, severity rubric, verdicts |
+| `finding-verification` | Falsification pass - every finding must survive an attempt to prove it wrong |
+| `quality-gates` | Entry and exit criteria for each phase, blocking rules, gate records |
+
+**Domain lenses** - each one a red-team perspective with probes, attack moves, a severity
+calibration and its known false positives:
+
+| Lens | Attacks |
+| ---- | ------- |
+| `lens-requirements` | Ambiguity, untestability, missing scenarios, hidden assumptions |
+| `lens-architecture` | Boundary violations, hidden coupling, unjustified novelty, one-way doors |
+| `lens-domain-model` | Illegal states, unenforced invariants, aggregate boundaries, language drift |
+| `lens-api-contract` | Drift, breaking changes, weak error semantics, missing idempotency |
+| `lens-data` | Migrations, integrity, unbounded queries, cache invalidation, retention |
+| `lens-security` | STRIDE, authn/authz, injection, secrets, exposure - with traced exploit paths |
+| `lens-privacy-compliance` | Personal data inventory, purpose, retention, deletion, third parties |
+| `lens-performance` | Growth functions, I/O in loops, unbounded input, budgets |
+| `lens-reliability` | Failure modes, timeouts, retries, partial failure, degraded modes |
+| `lens-concurrency` | Races, lost updates, deadlocks, ordering and idempotency assumptions |
+| `lens-observability` | Would we notice, how fast, and what would we look at next |
+| `lens-testing` | Weak oracles, mocked-away truth, mutation thinking, skipped tests |
+| `lens-accessibility` | WCAG 2.2 AA: keyboard, screen reader, contrast, focus, reflow, motion |
+| `lens-ux-content` | The five states, dead ends, destructive actions, error copy |
+| `lens-i18n` | Time zones, currency, unicode, pluralisation, locale assumptions |
+| `lens-operations` | Deploy, rollback, config, flags, runbooks, cost |
+| `lens-maintainability` | Fake implementations and stubs first, then smells and dead code |
+| `lens-supply-chain` | Dependencies, pinning, install-time code, licences, CI permissions |
+| `lens-llm-integration` | Prompt injection, tool authority, ungrounded output, cost bounds |
+
+Lenses are selected automatically from the artifact type and the risk signals present in the change
+(see the routing table in `adversarial-review/references/lens-registry.md`), or explicitly:
+
+```bash
+/specforge.harness --lens security,concurrency,data
+```
+
+Skills you edit locally are preserved across `forge update`: the CLI tracks what it installed and
+only refreshes files that are still unmodified.
 
 ### Environment Variables
 

@@ -6,13 +6,76 @@ This guide describes the different workflows available in SpecForge and when to 
 
 | Scenario | Workflow | Commands |
 |----------|----------|----------|
+| New feature, gated end to end | Phase Workflow | workflow (design → build → qa) |
 | New feature from scratch | Full Workflow | idea → specify → clarify → plan → tasks → implement → validate → merge |
 | New feature (simple) | Standard Workflow | specify → plan → tasks → implement → merge |
 | Bug fix | Quick Change | change |
 | Spec clarification | Quick Change | change |
 | User feedback | Quick Change | change |
 | Code refinement | Quick Change | change |
-| Major refactoring | Full Workflow | specify → plan → tasks → implement → merge |
+| Major refactoring | Phase Workflow | workflow |
+| Reviewing existing work | Harness | harness |
+
+---
+
+## Phase Workflow (Design → Build → QA)
+
+The phase workflow wraps the step-by-step commands in three gated phases. Each phase runs its skills,
+then an adversarial review through domain lenses, then a gate that returns PASS, PASS WITH CONDITIONS
+or BLOCK and writes a record to `specs/{feature}/gates/`.
+
+```bash
+/specforge.workflow Add OAuth2 login with Google and GitHub
+```
+
+| Phase | Command | Does | Gate |
+|-------|---------|------|------|
+| Design | `/specforge.design` | specify → clarify → plan, then red-team the artifacts | D1-D10 |
+| Build | `/specforge.build` | tasks → implement, reviewing each increment | B1-B9 |
+| QA | `/specforge.qa` | validate → analyze → review, then the release review | Q1-Q8 |
+
+### What each phase reviews
+
+| Phase | Default lenses |
+|-------|----------------|
+| Design | requirements, architecture, domain-model, api-contract, data, security, privacy-compliance, reliability |
+| Build | architecture, maintainability, security, concurrency, data, testing, performance, api-contract |
+| QA | requirements, testing, security, reliability, performance, observability, accessibility, operations |
+
+Lenses with no surface in the feature are dropped, and the skip is recorded. Lenses whose risk
+triggers fire (a migration, a new endpoint, an LLM call, a UI component...) are added automatically.
+
+### Gates
+
+A finding blocks when it is Critical, or High and confirmed, or violates a constitution MUST, or is a
+one-way door, or breaks a stated invariant. Everything else is advisory but still gets an owner and a
+task. The cost of the fix never changes whether a finding blocks.
+
+Gate verdicts are stale once their artifacts change - the workflow re-runs them rather than carrying a
+PASS across a rewrite.
+
+### Resuming
+
+The workflow reads its state from files (`gates/`, `tasks.md`, `validation/bugs/`, `task-results/`),
+so it survives a lost session. Re-running `/specforge.workflow` re-enters at the earliest phase with an
+open blocking item.
+
+---
+
+## Adversarial Review (Any Target)
+
+```bash
+/specforge.harness                          # the current diff vs the base branch
+/specforge.harness src/api/                 # a path
+/specforge.harness spec.md                  # an artifact
+/specforge.harness --lens security,data     # explicit lens selection
+/specforge.harness --phase design           # a phase's default lens set
+/specforge.harness --depth deep             # every triggered lens, no cap
+```
+
+Every finding must name a concrete failure (inputs or state → wrong outcome), carry evidence anchored
+to a location, and survive a falsification attempt. Findings that are refuted are dropped, not
+downgraded - which is what makes a zero-finding result meaningful.
 
 ---
 
@@ -406,6 +469,11 @@ For small, focused modifications without the full workflow overhead.
 
 | Phase | Command | Input | Output |
 |-------|---------|-------|--------|
+| **Workflow** | `/specforge.workflow` | Description or empty | All three phases, gate records |
+| | `/specforge.design` | Description or empty | spec.md, plan.md, gates/design-*.md |
+| | `/specforge.build` | - | tasks.md, code, gates/build-*.md |
+| | `/specforge.qa` | Scope | validation/, gates/qa-*.md |
+| | `/specforge.harness` | Target + lenses | Findings and a verdict |
 | **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
 | | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
 | | `/specforge.setup-agents` | - | agents + skills + MCP |
@@ -447,3 +515,7 @@ For small, focused modifications without the full workflow overhead.
 2. **Review code periodically** - Don't accumulate tech debt
 3. **Extract patterns** - Keep architecture registry current
 4. **Use checklists** - Validate requirements, not just code
+5. **Review each increment, not the whole feature** - A defect found three tasks later costs a fix;
+   found at the end it costs a redesign
+6. **Falsify before reporting** - A review whose findings do not hold up teaches everyone to ignore it
+7. **Record what you skipped** - An unrecorded skipped lens is a silent hole in the coverage

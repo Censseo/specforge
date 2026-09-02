@@ -1,5 +1,11 @@
 ---
 description: Execute the implementation planning workflow using the plan template to generate design artifacts.
+skills:
+  - technical-planning
+  - architecture-decision-records
+  - lens-architecture
+  - lens-domain-model
+  - lens-api-contract
 semantic_anchors:
   - Clean Architecture    # Dependency rule, use cases, entities, Robert C. Martin
   - Hexagonal Architecture  # Ports and Adapters, domain isolation, Alistair Cockburn
@@ -29,174 +35,59 @@ agent_scripts:
 $ARGUMENTS
 ```
 
-Consider the user input before proceeding (if not empty).
+The input carries the tech stack and constraints the user wants ("I am building with...").
 
-## Outline
+## Method
 
-1. **Setup**: Run `{SCRIPT}` from repo root and parse JSON for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+Apply the **`technical-planning`** skill: reuse before invention, the REUSE/EXTEND/REFACTOR/NEW
+decision matrix, architecture alignment against the registry, decision records with alternatives and
+consequences, and the reversibility assessment.
 
-2. **Load context**: Read FEATURE_SPEC and `/memory/constitution.md`. Load IMPL_PLAN template (already copied).
+## Operational Steps
 
-3. **Load source idea**: Extract the source idea from spec.md header or locate it:
-   - Check spec.md for `**Source**:` or `**Parent Idea**:` links
-   - If found, load the linked idea.md file; otherwise search `ideas/` by feature name
-   - Extract **Technical Hints**, **Constraints & Assumptions**, and **Discovery Notes** sections
-   - Store these as IDEA_TECHNICAL_CONSTRAINTS for validation in step 9
+1. **Setup**: run `{SCRIPT}` from the repo root; parse `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`,
+   `BRANCH`. For single quotes in arguments use `'I'\''m Groot'`.
 
-<doc_loading>
-4. **Load existing documentation**: New features that contradict existing domain rules cause integration failures downstream.
+2. **Load context**, in this order:
 
-   a. **Check `/docs` directory**: If `/docs/README.md` exists, list existing domains from `/docs/*/spec.md`.
+   | Source | What to take |
+   | ------ | ------------ |
+   | `FEATURE_SPEC` | What must be true when this is done |
+   | `/memory/constitution.md` | Constraints that outrank the plan |
+   | `/memory/architecture-registry.md` | Patterns, technology decisions, component conventions, anti-patterns |
+   | Source `idea.md` (via `**Source**:` / `**Parent Idea**:` in the spec, or `ideas/`) | Technical hints, constraints, discovery notes |
+   | `/docs/{domain}/spec.md` and its cross-domain references | Existing features, entities, business rules, API patterns |
+   | The codebase | What can be reused |
 
-   b. **Identify target domain** from spec.md's DOCUMENTATION_CONTEXT (set by specify) or infer from feature name.
+   Where no registry or `/docs` exists, say so, recommend `/specforge.learn` after implementation, and
+   proceed with explicit decision documentation.
 
-   c. **Load domain spec** from `/docs/{domain}/spec.md`: extract existing features, entities, business rules, and API contracts to understand how the new feature fits.
+3. **Explore and decide reuse** per the skill. Record findings in `research.md` under
+   "Existing Codebase Analysis".
 
-   d. **Load cross-domain dependencies** if spec.md references other domains — load related specs for integration context.
+4. **Architecture alignment**: produce the alignment report in `plan.md`. On any divergence from the
+   registry, stop and ask the user - approve, revise, or discuss alternatives - and record the answer.
 
-   e. **Create DOCUMENTATION_CONTEXT** summarizing:
-      - Features in domain (with business rules and integration points)
-      - Reusable entities (with fields and extension needs)
-      - Domain API patterns (with reuse potential for new feature)
-      - Cross-domain dependencies (domain, dependency, contract)
+5. **Phase 0 - research**: resolve every `NEEDS CLARIFICATION`, dependency and integration into a
+   decision record in `research.md`.
 
-   f. **If no `/docs` exists**: Log that this is likely the first feature and recommend running `/specforge.merge` after implementation.
-</doc_loading>
+6. **Phase 1 - design**: generate `data-model.md`, `contracts/` and `quickstart.md`, marking each
+   entity EXISTING / EXTENDED / NEW and each endpoint EXISTING / MODIFIED / NEW. Then run
+   `{AGENT_SCRIPT}` to update the agent context file, preserving manual sections.
 
-<architecture_registry>
-5. **Load architecture registry**: Skipping this step leads to pattern drift — teams waste time debugging inconsistencies across features.
+7. **Constitution check**: evaluate before and after the design step. An unjustified violation is an
+   error - resolve it or change the plan.
 
-   a. **Check for `/memory/architecture-registry.md`** and extract: established patterns, technology decisions, component conventions, anti-patterns, and cross-feature dependencies.
+8. **Idea alignment**: cross-check the plan against the idea's technical hints; mark each ALIGNED,
+   DIVERGENT (justified) or MISSING (add it). Stop and ask on a critical divergence.
 
-   b. **Create ARCHITECTURE_CONSTRAINTS list** covering: patterns to reuse, required technologies, component locations/naming, and approaches to avoid.
+9. **Red pass**: run `lens-architecture`, `lens-domain-model` and `lens-api-contract` over the
+   artifacts you just wrote. Fix what they find in place.
 
-   c. **If no registry exists**: Log the absence, recommend running `/specforge.learn` after this feature, and proceed with explicit decision documentation.
-</architecture_registry>
+## Report
 
-<codebase_exploration>
-6. **Explore existing codebase**: Creating new code when reusable components exist wastes effort and fragments the codebase.
+Branch, plan path, generated artifacts, architecture alignment status (patterns followed, divergences
+approved), idea alignment status, reuse summary (reused vs new), registry updates pending after
+implementation, and open one-way doors.
 
-   a. **Identify reusable components**: Search for existing services, utilities, base classes, and data models that overlap with requirements.
-
-   b. **Analyze existing architecture**: Understand project structure, established patterns, configuration mechanisms, and error handling conventions.
-
-   c. **For each capability in the spec**: search for similar functionality, check service/lib/util directories, review related features, and inspect shared infrastructure.
-
-   d. **Document findings** in research.md (Existing Codebase Analysis section) with tables for: reusable components found, existing patterns to follow, and potential conflicts.
-
-   e. **Apply reuse decision matrix**: REUSE (fits as-is) → EXTEND (needs additions) → REFACTOR (needs redesign) → NEW (nothing suitable, document why).
-</codebase_exploration>
-
-<architecture_alignment>
-7. **Validate architecture alignment**: Undocumented divergence causes architectural drift, which compounds across features until the system becomes unmaintainable.
-
-   For each capability, check against ARCHITECTURE_CONSTRAINTS: does an established pattern exist? Is a technology decision specified? Does a component convention apply? Is there an anti-pattern risk?
-
-   **Create Architecture Alignment Report** in plan.md with:
-   - Patterns applied (from registry or new, aligned or divergent)
-   - Technology alignment (registry vs. plan)
-   - New patterns introduced (with justification and registry update flag)
-   - Divergences requiring justification
-
-   **If divergences detected**: Stop and ask the user — "Plan diverges from established patterns. Approve divergence? (yes/no/modify)". If "no", revise; if "yes", document approval; if "modify", discuss alternatives.
-
-   **If no registry exists**: Mark all decisions as "New Pattern - to be registered" and proceed.
-</architecture_alignment>
-
-8. **Execute plan workflow**: Follow the structure in IMPL_PLAN template to:
-   - Fill Technical Context (mark unknowns as "NEEDS CLARIFICATION")
-   - Fill Constitution Check section from constitution
-   - Evaluate gates (ERROR if violations unjustified)
-   - Phase 0: Generate research.md (include Existing Codebase Analysis from step 6)
-   - Phase 1: Generate data-model.md, contracts/, quickstart.md
-   - Phase 1: Update agent context by running the agent script
-   - Re-evaluate Constitution Check post-design
-   - Prefer extending existing components over creating new ones
-   - Ensure Architecture Alignment section is included in plan.md
-
-<idea_alignment>
-9. **Validate alignment with source idea**: Plans that contradict the original idea's technical intent create rework when reviewers catch the mismatch.
-
-   a. **Extract technical requirements from idea**: commands/scripts, tools/libraries/versions, execution order, technical patterns, and integration instructions.
-
-   b. **Cross-check with plan.md**: For each constraint — mark as ALIGNED (plan addresses it), DIVERGENT (different approach, requires justification), or MISSING (not addressed, add to plan).
-
-   c. **Create alignment report** in plan.md with source idea path, constraint status table, and any divergences with justification.
-
-   d. **If critical divergences exist** (plan contradicts explicit technical instructions from idea): Stop and ask user to confirm before proceeding; document the decision in research.md.
-</idea_alignment>
-
-10. **Stop and report**: Command ends after Phase 2 planning. Report:
-    - Branch and IMPL_PLAN path
-    - Generated artifacts
-    - Architecture alignment status (patterns followed, divergences approved)
-    - Alignment status with source idea
-    - Reuse summary: components reused vs. new code created
-    - Registry updates needed: new patterns to register after implementation
-
-## Phases
-
-### Phase 0: Outline & Research
-
-1. **Include Existing Codebase Analysis** (from step 6):
-   - Copy findings from step 6 into research.md as the first section
-   - Include Architecture Constraints from step 5
-   - All subsequent decisions should reference this analysis and registry constraints
-
-2. **Extract unknowns from Technical Context**:
-   - For each NEEDS CLARIFICATION → research task
-   - For each dependency → best practices task
-   - For each integration → patterns task
-
-3. **Generate and dispatch research agents**:
-
-   ```text
-   For each unknown in Technical Context:
-     Task: "Research {unknown} for {feature context}"
-   For each technology choice:
-     Task: "Find best practices for {tech} in {domain}"
-   For each capability:
-     Task: "Search codebase for existing implementation of {capability}"
-   ```
-
-4. **Consolidate findings** in `research.md`:
-
-   ```markdown
-   ## Existing Codebase Analysis
-   [From step 6 - reusable components, patterns, conflicts]
-
-   ## Technical Decisions
-
-   ### Decision 1: [Topic]
-   - **Decision**: [what was chosen]
-   - **Existing code considered**: [what was evaluated]
-   - **Reuse approach**: REUSE / EXTEND / REFACTOR / NEW
-   - **Rationale**: [why, especially if NEW]
-   - **Alternatives considered**: [what else evaluated]
-   ```
-
-**Output**: research.md with existing codebase analysis, all NEEDS CLARIFICATION resolved, and reuse decisions justified.
-
-### Phase 1: Design & Contracts
-
-**Prerequisites:** `research.md` complete (with Existing Codebase Analysis)
-
-1. **Extract entities from feature spec** → `data-model.md`:
-   - First check if entities already exist in the codebase
-   - If entity exists: reference it, note if extension needed
-   - If entity is new: define name, fields, relationships, validation rules, state transitions
-   - Mark each entity: EXISTING / EXTENDED / NEW
-
-2. **Generate API contracts** from functional requirements:
-   - First check if similar endpoints already exist
-   - For each user action → endpoint, using patterns from codebase (step 6) and registry (step 5)
-   - Output OpenAPI/GraphQL schema to `/contracts/`
-   - Mark each endpoint: EXISTING / MODIFIED / NEW
-
-3. **Agent context update**:
-   - Run `{AGENT_SCRIPT}` to detect the AI agent in use
-   - Update the appropriate agent-specific context file
-   - Add only new technology from current plan
-   - Preserve manual additions between markers
-
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file. Each artifact should clearly indicate what is reused vs. new.
+Stop here. `/specforge.tasks` is the next step - or `/specforge.build` to run the whole build phase.

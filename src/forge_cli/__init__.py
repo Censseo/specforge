@@ -33,6 +33,7 @@ import shutil
 import shlex
 import json
 import re
+import hashlib
 from pathlib import Path
 from typing import Optional, Tuple
 import importlib.resources
@@ -491,6 +492,116 @@ def generate_agent_commands(
     return True
 
 
+SKILLS_MANIFEST_NAME = ".specforge-skills.json"
+
+
+def _substitute_agent_placeholders(
+    content: str,
+    ai_assistant: str,
+    script_type: str,
+) -> str:
+    """Apply the shared agent/script placeholder substitutions to template content."""
+    content = content.replace("\r\n", "\n").replace("\r", "\n")
+
+    # {SCRIPT} comes from the file's own `scripts:` frontmatter, per script variant.
+    script_match = re.search(rf'^\s*{script_type}:\s*(.+)$', content, re.MULTILINE)
+    if script_match:
+        content = content.replace("{SCRIPT}", script_match.group(1).strip())
+
+    agent_cfg = AGENT_CONFIG[ai_assistant]
+    agent_dir = agent_cfg["folder"].rstrip("/")
+
+    # __AGENT_DIR__ contains __AGENT__, so the longer tokens must be replaced first.
+    content = content.replace("__AGENT_DIR__", agent_dir)
+    content = content.replace("__AGENT_NAME__", agent_cfg["name"])
+    content = content.replace("__AGENT_CONTEXT_FILE__", agent_cfg.get("context_file", ""))
+    content = content.replace("__AGENT_CONTEXT_GLOB__", agent_cfg.get("context_glob", ""))
+    content = content.replace("__AGENT_PROJECT_DIR_ENV__", agent_cfg.get("project_dir_env", "$PWD"))
+    content = content.replace("__AGENT__", ai_assistant)
+
+    return _rewrite_paths_for_bundled(content)
+
+
+def generate_agent_skills(
+    ai_assistant: str,
+    script_type: str,
+    target_dir: Path,
+    bundled_path: Path,
+) -> Tuple[int, int]:
+    """Install the bundled SpecForge skills into an agent's skills directory.
+
+    Skills are toolkit-managed: on update, a file is refreshed only when it still
+    matches the content SpecForge installed. Files the user edited are left alone,
+    tracked via a manifest of sha256 hashes.
+
+    Args:
+        ai_assistant: The AI assistant key (claude, copilot, etc.)
+        script_type: Script type (sh or ps)
+        target_dir: Project root directory
+        bundled_path: Path to bundled resources
+
+    Returns:
+        (installed_count, preserved_count). (0, 0) when there is nothing to install.
+    """
+    skills_source = bundled_path / "templates" / "skills"
+    if not skills_source.exists() or ai_assistant not in AGENT_CONFIG:
+        return (0, 0)
+
+    agent_folder = AGENT_CONFIG[ai_assistant]["folder"].rstrip("/")
+    skills_dest = target_dir / agent_folder / "skills"
+    skills_dest.mkdir(parents=True, exist_ok=True)
+
+    manifest_path = skills_dest / SKILLS_MANIFEST_NAME
+    previous: dict = {}
+    if manifest_path.exists():
+        try:
+            previous = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            previous = {}
+
+    manifest: dict = {}
+    installed = 0
+    preserved = 0
+
+    for source_file in sorted(skills_source.rglob("*")):
+        if not source_file.is_file():
+            continue
+
+        rel = source_file.relative_to(skills_source)
+        rel_str = rel.as_posix()
+        dest_file = skills_dest / rel
+
+        if source_file.suffix == ".md":
+            rendered = _substitute_agent_placeholders(
+                source_file.read_text(encoding="utf-8"), ai_assistant, script_type
+            ).encode("utf-8")
+        else:
+            rendered = source_file.read_bytes()
+
+        digest = hashlib.sha256(rendered).hexdigest()
+
+        if dest_file.exists():
+            current = hashlib.sha256(dest_file.read_bytes()).hexdigest()
+            if current == digest:
+                manifest[rel_str] = digest
+                continue  # already up to date
+            if previous.get(rel_str) != current:
+                # The file on disk is not what SpecForge last installed: the user
+                # edited it, or it predates the manifest. Either way it is theirs.
+                # Leaving it out of the manifest keeps it theirs on every later update.
+                preserved += 1
+                continue
+
+        manifest[rel_str] = digest
+
+        dest_file.parent.mkdir(parents=True, exist_ok=True)
+        dest_file.write_bytes(rendered)
+        installed += 1
+
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return (installed, preserved)
+
+
 def build_template_from_bundled(
     ai_assistant: str,
     script_type: str,
@@ -561,6 +672,9 @@ def build_template_from_bundled(
         # Generate agent-specific commands
         if not generate_agent_commands(ai_assistant, script_type, target_dir, bundled_path):
             return False
+
+        # Install the bundled SpecForge skills into the agent's skills directory
+        generate_agent_skills(ai_assistant, script_type, target_dir, bundled_path)
 
         if tracker:
             tracker.complete("bundled", "templates built from package")
@@ -1543,6 +1657,23 @@ def sync_agent_working_files(installed_agents: list[str], project_path: Path, tr
         # file_rel_path -> list of (agent_key, full_path, mtime)
         all_files: dict[str, list[tuple[str, Path, float]]] = {}
 
+        # SpecForge-managed skills are rendered per agent (CLAUDE.md vs GEMINI.md,
+        # .claude/ vs .gemini/, ...), so copying one agent's copy over another's
+        # would corrupt those substitutions. They are installed by
+        # generate_agent_skills instead and must never be cross-synced.
+        managed: set[str] = set()
+        if subdir == "skills":
+            managed.add(SKILLS_MANIFEST_NAME)
+            for agent_key in installed_agents:
+                agent_folder = AGENT_CONFIG[agent_key]["folder"].rstrip("/")
+                manifest_path = project_path / agent_folder / subdir / SKILLS_MANIFEST_NAME
+                if not manifest_path.exists():
+                    continue
+                try:
+                    managed.update(json.loads(manifest_path.read_text(encoding="utf-8")).keys())
+                except (json.JSONDecodeError, OSError):
+                    continue
+
         for agent_key in installed_agents:
             agent_folder = AGENT_CONFIG[agent_key]["folder"].rstrip("/")
             working_dir = project_path / agent_folder / subdir
@@ -1554,6 +1685,8 @@ def sync_agent_working_files(installed_agents: list[str], project_path: Path, tr
                 if not file_path.is_file():
                     continue
                 rel = file_path.relative_to(working_dir)
+                if rel.as_posix() in managed:
+                    continue
                 rel_str = str(rel)
                 if rel_str not in all_files:
                     all_files[rel_str] = []
@@ -2426,6 +2559,8 @@ def update(
             f"  1. Update shared resources (.specforge/scripts/, .specforge/templates/)",
             f"     [bright_black]Memory (.specforge/memory/) will NOT be touched[/bright_black]",
             f"  2. Regenerate commands for {len(all_agents)} agent(s): {', '.join(all_agents)}",
+            f"     and refresh SpecForge skills in each agent's skills/ directory",
+            f"     (locally modified skill files are preserved)",
         ]
         if not skip_sync:
             # Check which context files exist
@@ -2454,6 +2589,7 @@ def update(
     for key, label in [
         ("shared", "Update shared resources"),
         ("commands", "Regenerate agent commands"),
+        ("skills", "Install SpecForge skills"),
         ("context-sync", "Sync context files"),
         ("working-sync", "Sync skills and sub-agents"),
         ("chmod", "Ensure scripts executable"),
@@ -2498,6 +2634,25 @@ def update(
                     tracker.error("commands", f"failed for: {', '.join(cmd_errors)}")
                 else:
                     tracker.complete("commands", f"{len(all_agents)} agent(s) updated")
+
+            # --- Install/refresh SpecForge skills for all agents ---
+            tracker.start("skills")
+            if not source_path:
+                tracker.skip("skills", "no bundled templates available")
+            else:
+                skills_installed = 0
+                skills_preserved = 0
+                for agent_key in all_agents:
+                    added, kept = generate_agent_skills(
+                        agent_key, detected_script, project_path, source_path
+                    )
+                    skills_installed += added
+                    skills_preserved += kept
+
+                detail = f"{skills_installed} file(s) written"
+                if skills_preserved:
+                    detail += f", {skills_preserved} locally modified file(s) preserved"
+                tracker.complete("skills", detail)
 
             # --- Sync context files ---
             if not skip_sync:

@@ -1,5 +1,9 @@
 ---
 description: Diagnose and fix a poorly implemented feature by analyzing gaps between specification and implementation
+skills:
+  - bug-diagnosis
+  - finding-verification
+  - lens-testing
 semantic_anchors:
   - 5 Whys               # Root cause analysis via iterative questioning, Toyota Production System
   - Ishikawa Diagram     # Fishbone - categorize causes: People, Process, Equipment, Materials, Environment
@@ -21,290 +25,68 @@ scripts:
   ps: scripts/powershell/list-bugs.ps1 -Json
 ---
 
-# Fix Feature Implementation
-
-> **Activated Frameworks**: 5 Whys for root cause analysis, Ishikawa for cause categorization, Scientific Method for systematic debugging.
-
-<role>
-You are a Root Cause Analyst and Fixer. Your workflow:
-1. **Diagnose** using 5 Whys and Ishikawa categorization
-2. **Plan** corrections based on Scientific Method (hypothesis -> test -> conclude)
-3. **Execute** fixes directly (Fail Fast - immediate feedback)
-
-You are the fixer. Fixing issues directly prevents delays -- only escalate to the user when you genuinely need credentials, API keys, or hardware access. If the fix involves code, configuration, integration, or optimization, do it yourself regardless of which layer or domain it touches.
-</role>
-
 ## User Input
 
 ```text
 $ARGUMENTS
 ```
 
-Consider user input for: specific symptoms or failures, which user stories are affected, error messages or unexpected behavior, and whether the problem is in spec, implementation, or understanding.
+Symptoms, affected stories, error messages, or `path:line` for quick fix mode.
 
----
+## Method
 
-## Problem Categories (Ishikawa-style)
+Apply the **`bug-diagnosis`** skill: the Ishikawa problem categories, the 5 Whys, the scientific method,
+the fix-then-verify loop and the record updates.
 
-| Category | Symptoms | Root Cause Pattern | Action |
-| -------- | -------- | ------------------ | ------ |
-| **Spec Gap** | Feature works but doesn't match needs | Spec incomplete/ambiguous | Apply Convention over Configuration, then implement |
-| **Implementation Bug** | Code doesn't match spec | Code error, logic flaw | Fix the code directly |
-| **Misunderstanding** | Wrong feature built entirely | Requirements misinterpreted | Re-analyze with Jobs-to-Be-Done, update spec, re-implement |
-| **Integration Issue** | Parts work alone, fail together | Missing glue, coupling | Add the missing integration code |
-| **Performance Issue** | Feature works but slow/heavy | NFR not met | Optimize the code directly |
+You are the fixer. Escalate only for credentials, access or a genuine product decision - not because
+the defect sits in an unfamiliar layer.
 
----
+## Operational Steps
 
-## Phase 1: Load Bugs and Context
+1. Run `{SCRIPT}` to list unresolved bugs. Expected shape:
 
-### Step 1.0: Load Unresolved Bugs
+   ```json
+   {
+     "FEATURE_DIR": "/path/to/specs/001-feature",
+     "BUGS": [{"id": "BUG-001", "status": "open", "severity": "critical", "user_story": "US3", "title": "...", "file": "..."}],
+     "SUMMARY": {"total": 3, "unresolved": 2, "open": 2, "in_progress": 0, "resolved": 1}
+   }
+   ```
 
-Run `{SCRIPT}` to get unresolved bugs from validation. Expected structure:
+   Read each bug file in full. Source priority: `validation/bugs/` > user input > `validation/report-*.md`.
+   If there are no bugs and no user input, ask what to fix or suggest `/specforge.validate` first.
 
-```json
-{
-  "FEATURE_DIR": "/path/to/specs/001-feature",
-  "BUGS": [{ "id": "BUG-001", "status": "open", "severity": "critical", "user_story": "US3", "title": "...", "file": "..." }],
-  "SUMMARY": { "total": 3, "unresolved": 2, "open": 2, "in_progress": 0, "resolved": 1 }
-}
-```
+2. Load the feature context: `spec.md` (what should exist), `plan.md` (how), `tasks.md` (what was
+   planned), `task-results/` (what actually happened - the highest-signal source), `validation/`.
 
-- Process all unresolved bugs (status: open or in_progress). Read each bug file for full details.
-- If no bugs found and no user input, ask what issue to fix or suggest running `/specforge.validate` first.
+3. Diagnose per the skill: spec vs implementation per story, plan vs reality via `task-results/`, then
+   5 Whys and Ishikawa categorisation with a confidence level per symptom.
 
-### Step 1.1: Load Feature Context
+4. Before fixing, apply `finding-verification` to each diagnosis: trace the failure path end to end and
+   attempt the cheapest empirical proof. A fix built on an unverified hypothesis moves the bug rather
+   than removing it.
 
-```text
-FEATURE_DIR/
-├── spec.md              -> What should be built
-├── plan.md              -> How it should be built
-├── tasks.md             -> What was supposed to be done
-├── task-results/        -> What was actually done
-└── validation/
-    ├── bugs/            -> Individual bug reports (primary input)
-    ├── report-*.md      -> Validation reports
-    └── screenshots/     -> Evidence
-```
+5. Assess impact: files to change, dependency order, risk with mitigation, effort.
 
-**Priority order for bug sources**: `validation/bugs/` (structured, preferred) > user input (symptoms) > `validation/report-*.md` (additional context).
+6. Choose the path - A code fixes only, B clarify first, C major misunderstanding - and say which.
 
-### Step 1.2: Gather Symptoms
+7. Execute the fixes in dependency order. For each: apply, verify, and add the regression test that
+   fails without the fix.
 
-If user input is vague, ask: (1) What did you expect? (2) What actually happens? (3) When did it start failing? (4) Any error messages? (5) Which user stories are affected?
-
-If user provides clear symptoms, skip to Step 1.3.
-
-### Step 1.3: Document Observed Symptoms
-
-Create a symptoms summary table:
-
-```markdown
-## Observed Symptoms
-
-| # | Symptom | Affected Area | Severity |
-|---|---------|---------------|----------|
-| 1 | Login returns 500 error | US1 - Authentication | Critical |
-
-**User's Description**: {verbatim from user input}
-```
-
----
-
-## Phase 2: Diagnostic Analysis
-
-### Step 2.1: Spec vs Implementation Comparison
-
-For each affected user story, compare spec requirements against implementation. For each requirement note: whether it is implemented, the file location, and whether it is working/buggy/missing.
-
-Output as a table per user story with a "Gaps Found" summary listing bugs and missing items.
-
-### Step 2.2: Task Completion vs Actual Results
-
-Compare `tasks.md` with `task-results/`. For any task marked complete but broken or partial, document the deviation: what was planned, what was actually built, and which symptom it causes.
-
-### Step 2.3: Root Cause Classification (5 Whys + Ishikawa)
-
-For each symptom, ask "Why?" iteratively to reach the true root cause. Classify each using Ishikawa categories (Equipment/Code, Process/Spec, People/Misunderstanding, Materials/Integration).
-
-Output a summary table:
-
-```markdown
-## Root Cause Analysis
-
-| Symptom | 5 Whys Conclusion | Ishikawa Category | Confidence |
-|---------|-------------------|-------------------|------------|
-| Login 500 error | Exception not caught -> no defensive coding | Equipment (Code) | High |
-```
-
----
-
-## Phase 3: Impact Assessment
-
-Determine what needs to change. Output:
-
-<impact_report>
-
-1. **Files requiring fixes**: table with file, changes needed, risk level, and dependencies
-2. **Dependency order**: numbered sequence respecting blocking relationships
-3. **Risk assessment**: table with fix, risk level, and mitigation strategy
-4. **Estimated effort**: summary of code fixes, spec clarifications, and re-validation needs
-
-</impact_report>
-
----
-
-## Phase 4: Correction Plan Generation
-
-### Step 4.1: Generate Fix Tasks
-
-Create targeted correction tasks in two groups:
-
-**Immediate Fixes** (implementation bugs) -- each task includes: ID, severity, symptom, spec reference, fix description, and dependencies.
-
-**Spec Clarifications Needed** (spec gaps) -- each task includes: ID, severity, symptom, gap description, and specific questions to resolve.
-
-### Step 4.2: Determine Action Path
-
-Choose one:
-
-- **Path A: Code Fixes Only** -- Execute FIX tasks immediately, re-validate after.
-- **Path B: Spec Clarification Required** -- Run `/specforge.clarify` for gaps, then execute FIX tasks, then re-validate.
-- **Path C: Major Misunderstanding** -- Review original idea.md, decide salvage vs restart.
-
----
-
-## Phase 5: Update Artifacts
-
-### Step 5.1: Update tasks.md
-
-Find the highest task number and append fix tasks under a `### Bug Fixes (Added {date})` section. Include a `### Pending Spec Clarification` section if applicable.
-
-### Step 5.2: Mark Affected Tasks
-
-If original tasks were marked complete but are broken, update their status:
-
-```markdown
-# Before:
-- [X] T003 Implement Dashboard component [Result](task-results/T003-result.md)
-# After:
-- [~] T003 Implement Dashboard component [Result](task-results/T003-result.md) Needs FIX-002
-```
-
-### Step 5.3: Create Fix Analysis Report
-
-Save to `FEATURE_DIR/fix-analysis-{date}.md` with sections: Executive Summary, Symptoms Analyzed, Root Causes Identified, Correction Plan, Recommended Path, Files to Modify.
-
----
-
-## Phase 6: Execute Fixes
-
-### Step 6.1: Execute All Implementation Fixes
-
-For each FIX task, in dependency order:
-
-1. Analyze the problem (root cause, file, line)
-2. Apply the fix directly
-3. Verify the fix works (local test, add unit test if possible)
-4. Document what was changed
-
-### Step 6.2: Handle Spec Gaps
-
-**Prefer making reasonable assumptions** when a sensible default exists. Document the assumption in spec.md and proceed with implementation.
-
-Only ask the user when genuinely ambiguous with no reasonable default. List specific options and continue fixing other issues while waiting.
-
-### Step 6.3: Verify All Fixes
-
-After completing all fixes, produce a summary table: task, status, files modified, verification result.
-
-### Step 6.4: Update Bug Status
-
-After fixing each bug, update its frontmatter in `validation/bugs/`:
-
-```yaml
-status: resolved
-resolved_date: {current_date}
-fix_applied: "Description of fix"
-```
-
-Add a `## Resolution` section to the bug file with: fixer identity, date, changes made, and verification result.
-
-### Step 6.5: Update Other Artifacts
-
-1. Mark FIX tasks as complete in tasks.md
-2. Save fix results to `task-results/FIX-XXX-result.md`
-3. Note fixes applied in validation report
-
----
+8. Update the records: bug frontmatter (`status: resolved`, `resolved_date`, `fix_applied`) plus a
+   `## Resolution` section; `tasks.md` (fix tasks complete, broken "complete" tasks downgraded to `[~]`
+   with the fix id); `task-results/FIX-XXX-result.md`; `fix-analysis-{date}.md`.
 
 ## Output
 
-Present completed results to user:
-
-```markdown
-## Fix Execution Complete
-
-### Bugs Resolved
-| Bug ID | Severity | User Story | Status | Fix Applied |
-|--------|----------|------------|--------|-------------|
-| BUG-001 | CRITICAL | US3 | Resolved | Added missing report template |
-
-### Changes Made
-**Files Modified**: list of files with brief description of each change
-
-### Assumptions Made
-> Decisions based on reasonable defaults. Please review.
-1. **Export Format**: Chose CSV as default (common use case)
-
-### Verification Status
-| Fix | Local Test | Unit Test | Integration |
-|-----|------------|-----------|-------------|
-| FIX-001 | Pass | Added | Pending validation |
-
-### Next Step
-> Run `/specforge.validate` to confirm all issues are resolved.
-```
-
-The output shows completed fixes, not proposed actions. If any fix could not be completed, explain the specific blocker.
-
----
+Report what was **done**: bugs resolved, files modified, assumptions made (flagged for review),
+verification status per fix. If a fix could not be completed, name the specific blocker.
 
 ## Quick Fix Mode
 
-If user provides a specific file/line:
+`/specforge.fix api/auth.py:52 returns 500 instead of 401` - read the context, identify the defect, fix
+it, verify it, report the change. No ceremony.
 
-```text
-/specforge.fix api/auth.py:52 returns 500 instead of 401
-```
+## Next
 
-Execute targeted fix immediately:
-
-1. Read the file and surrounding context
-2. Identify the specific bug
-3. Fix the bug directly
-4. Verify the fix works
-5. Report what was changed
-
-```markdown
-## Quick Fix Applied
-
-**Target**: api/auth.py:52
-**Issue**: Returns 500 instead of 401
-**Fix**: Added try-catch with proper error response
-**Change**: `raise ValidationError(...)` -> `return Response({"error": "..."}, status=401)`
-**Verification**: Local test shows 401 response with message
-
-> Run `/specforge.validate` to confirm in integration
-```
-
----
-
-## Integration with Other Commands
-
-| Scenario | Action | Then |
-| -------- | ------ | ---- |
-| Code bug from validation | Fix the bug directly | `/specforge.validate` |
-| Spec gap discovered | Make assumption and implement, or ask user | `/specforge.validate` |
-| Multiple issues | Fix all in dependency order | `/specforge.validate` |
-| Need more evidence | Run quick tests to understand | Fix once understood |
+Run `/specforge.validate` to confirm. A fix is not done until the scenario that caught it passes.

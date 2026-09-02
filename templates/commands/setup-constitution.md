@@ -1,5 +1,7 @@
 ---
 description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
+skills:
+  - constitution-authoring
 handoffs: 
   - label: Build Specification
     agent: specforge.specify
@@ -11,6 +13,11 @@ handoffs:
 ```text
 $ARGUMENTS
 ```
+
+## Method
+
+Apply the **`constitution-authoring`** skill: the four-part admission test, the principle structure,
+and the rule that a principle which nobody will block a release for belongs somewhere else.
 
 Consider the user input before proceeding (if not empty).
 

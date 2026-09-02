@@ -7,6 +7,73 @@ All notable changes to the Forge CLI and templates are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-02
+
+### Added - Skills, Phase Workflow and Adversarial Review
+
+#### Skills are now the source of truth
+
+The methodology that used to live inside each command has moved into skills, installed into every
+agent's skills directory (`.claude/skills/`, `.opencode/skills/`, ...) by `forge init` and
+`forge update`. Commands are now thin orchestrators that invoke them.
+
+- **Method skills**: `specforge-workflow`, `idea-shaping`, `spec-authoring`,
+  `requirements-clarification`, `technical-planning`, `task-decomposition`,
+  `implementation-execution`, `integration-validation`, `bug-diagnosis`, `artifact-analysis`,
+  `quality-checklists`, `focused-change`, `feature-merge`, `codebase-learning`,
+  `constitution-authoring`, `semantic-anchors`
+- Skills are also model-invoked: agents load them when the work matches, outside the slash commands
+- Locally edited skill files are preserved across `forge update` via a content manifest
+  (`skills/.specforge-skills.json`)
+
+#### Phase workflow commands
+
+| Command | Description |
+| ------- | ----------- |
+| `/specforge.workflow` | Orchestrates design → build → qa, stopping at any gate that blocks |
+| `/specforge.design` | Specify, clarify, plan, red-team the design artifacts, clear the design gate |
+| `/specforge.build` | Decompose, implement test-first, review each increment, clear the build gate |
+| `/specforge.qa` | Validate, analyse, review, clear the release gate |
+| `/specforge.harness` | Run the adversarial review harness on any target with any lens selection |
+
+Each phase writes a gate record to `specs/{feature}/gates/` with a verdict of PASS,
+PASS WITH CONDITIONS or BLOCK. The workflow resumes from file state, so it survives session loss.
+
+#### Adversarial review harness
+
+- `adversarial-review` - framing, lens routing, finding schema, severity rubric, anti-gaming rules
+- `finding-verification` - every finding must survive a falsification attempt before it is reported;
+  refuted findings are dropped, not demoted
+- `quality-gates` - entry and exit criteria per phase (D1-D10, B1-B9, Q1-Q8), blocking rules, records
+
+#### Domain lenses
+
+Nineteen review lenses, each with probes, attack moves, a severity calibration and its known false
+positives: `lens-requirements`, `lens-architecture`, `lens-domain-model`, `lens-api-contract`,
+`lens-data`, `lens-security`, `lens-privacy-compliance`, `lens-performance`, `lens-reliability`,
+`lens-concurrency`, `lens-observability`, `lens-testing`, `lens-accessibility`, `lens-ux-content`,
+`lens-i18n`, `lens-operations`, `lens-maintainability`, `lens-supply-chain`, `lens-llm-integration`.
+
+Lens selection is routed automatically by artifact type and risk signal
+(`adversarial-review/references/lens-registry.md`), or chosen explicitly with `--lens`.
+
+### Changed
+
+- All core commands (`specify`, `clarify`, `plan`, `tasks`, `implement`, `validate`, `analyze`,
+  `review`, `checklist`, `fix`, `idea`, `change`, `semantic-anchors`) rewritten as thin invokers that
+  declare their `skills:` and keep only the operational steps: script wiring, paths and report contracts
+- `merge`, `learn`, `breakdown` and `setup-constitution` now reference their skill; their operational
+  bodies are unchanged
+- `setup-skills` no longer regenerates skills that ship with SpecForge; it adds project-specific ones
+
+### Pending
+
+- Release packaging (`.github/workflows/scripts/create-release-packages.sh`) does not yet install
+  skills or substitute the full `__AGENT_*__` placeholder set. The change is prepared in
+  `docs/patches/release-packaging-skills.patch` and needs to be applied by someone with the
+  `workflows` permission. Until then, release zips ship commands without the skills they invoke;
+  installing with `forge init` is unaffected.
+
 ## [0.1.0] - 2026-02-08
 
 ### BREAKING CHANGE - Project Rebranding

@@ -1,5 +1,8 @@
 ---
 description: Create detailed task implementation plans phase-by-phase with user confirmation between phases to avoid lazy execution
+skills:
+  - task-decomposition
+  - technical-planning
 semantic_anchors:
   - Work Breakdown Structure  # Hierarchical decomposition, project management
   - Spike                     # Timeboxed research/exploration, XP practice
@@ -13,6 +16,12 @@ semantic_anchors:
 ```text
 $ARGUMENTS
 ```
+
+## Method
+
+Apply the **`task-decomposition`** skill for the phase structure, the task format and the reuse
+markers, and the **`technical-planning`** skill for the reuse decision matrix when a task plan needs to
+choose between extending existing code and writing new code.
 
 Consider the user input before proceeding (if not empty).
 
