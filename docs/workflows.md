@@ -31,9 +31,9 @@ writes a gate record to `specs/{feature}/gates/` that returns PASS, PASS WITH CO
 | Pipeline | Command | Chain | Gate |
 |----------|---------|-------|------|
 | Design | `/specforge.design` | specify → clarify (auto) → plan → **adversarial review** → checklists (auto) → tasks → analyze (auto) → complexity analysis | D1-D10 |
-| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections → **test plan** | B1-B9 |
+| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections → **final adversarial review** → **test plan** | B1-B9 |
 | QA | `/specforge.qa` | execute `test-plan.md` ⇄ fix loop (max 3, early exit on no progress) → **adversarial release review** | Q1-Q8 |
-| Merge | `/specforge.merge` | **final adversarial review** → docs consolidation → merge | - |
+| Merge | `/specforge.merge` | verify both gates → docs consolidation → merge | - |
 
 ### Models
 
@@ -82,7 +82,7 @@ concurrency / public contract changes.
 
 ### The adversarial test plan
 
-Build ends by writing `FEATURE_DIR/test-plan.md`, and QA executes it. The timing is the point: at the
+Build then writes `FEATURE_DIR/test-plan.md`, and QA executes it. The timing is the point: at the
 end of build the pipeline knows what was actually built, where it deviated from the plan, and every
 gotcha the implementation hit. A plan derived from the spec alone tests what was intended; those
 deviations are where the bugs are, and they do not exist yet at design time.
@@ -110,14 +110,25 @@ that silently omits what it could not test reports better coverage than it has.
 Regenerate or scope it on its own with `/specforge.testplan`, `/specforge.testplan smoke`, or
 `/specforge.testplan US2`.
 
-### The final review before merge
+### The final review at the end of build
 
-`/specforge.merge` runs one last adversarial pass over the whole feature branch, focused on
-architecture, design patterns, security and performance - the things that are expensive to change once
-merged. It catches two things nothing earlier could: the shape of the whole (duplication across
-phases, an abstraction that grew three incompatible callers), and the fact that whatever merges becomes
-the example the next feature copies. A BLOCK stops the merge; merging a known Critical is an explicit
-decision, not a default.
+Build's last review pass runs over the whole feature branch diff, focused on architecture, design
+patterns, security and performance - the things that are expensive to change once shipped.
+
+It sits at the end of **build**, not at merge, for one reason: its findings produce code changes, and
+those must land before QA validates. A review at merge time either duplicates a pass that already ran
+on the same code, or surfaces changes after QA has already signed off on something else.
+
+It catches two things nothing earlier could. The shape of the whole - duplication across phases, an
+abstraction that grew three incompatible callers, a boundary that eroded task by task - which the
+per-increment passes could not see because each saw one phase. And the fact that whatever ships becomes
+the example the next feature copies: a shortcut that survives here is a convention by next month.
+
+Cheap fixes are applied in place rather than filed. A follow-up task on merged code competes with new
+work and usually loses. A blocking finding makes the build gate BLOCK, and no test plan is written for
+code already known to be wrong.
+
+`/specforge.merge` verifies this happened and cleared, rather than repeating it.
 
 Run the same pass on demand with:
 

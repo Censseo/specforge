@@ -37,9 +37,10 @@ Chains the three macro pipelines and stops at the first gate that blocks.
 
 1. Locate the feature and determine the resume point
 2. Run `/specforge.design` (unless already cleared)
-3. Run `/specforge.build` (unless already cleared) - it ends by writing `test-plan.md`
+3. Run `/specforge.build` (unless already cleared) - it ends with the final adversarial review and
+   then writes `test-plan.md`
 4. Run `/specforge.qa` - it executes `test-plan.md`
-5. Report and hand off to `/specforge.merge`, which runs the final adversarial review
+5. Report and hand off to `/specforge.merge`, which verifies both gates and lands the feature
 
 Each pipeline runs non-interactively and produces its own gate record. This command adds the
 resumption logic and the stop-on-block rule between them.

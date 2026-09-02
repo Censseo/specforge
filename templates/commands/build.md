@@ -1,5 +1,5 @@
 ---
-description: Macro command that runs breakdown (if needed) and implementation for all phases, with an adversarial review per increment, followed by code review, corrections and an adversarial test plan for QA.
+description: Macro command that runs breakdown (if needed) and implementation for all phases, with an adversarial review per increment, then code review, corrections, a final adversarial review over the whole feature, and an adversarial test plan for QA.
 skills:
   - specforge-workflow
   - adversarial-review
@@ -54,8 +54,9 @@ feature and apply corrections.
 3. Code review after all phases
 4. Add correction tasks to tasks.md
 5. Implement corrections
-6. Produce the adversarial test plan for QA
-7. Record the build gate verdict
+6. Run the final adversarial review over the whole feature and fix what it confirms
+7. Produce the adversarial test plan for QA
+8. Record the build gate verdict
 
 ## Detailed Steps
 
@@ -186,7 +187,50 @@ Args: Execute the review correction tasks only (the last phase in tasks.md). Do 
 Re-run the lenses that produced each correction against the fixed code. A correction task marked
 complete whose finding still reproduces is not complete - reopen it.
 
-### Step 5: Adversarial Test Plan
+### Step 5: Final Adversarial Review
+
+The last structural look at the feature, on the full branch diff, once every correction has landed.
+Everything before this saw one increment at a time; this sees the finished thing as a piece of the
+codebase.
+
+```text
+Skill: specforge.harness
+Args: --focus architecture, design patterns, security, performance --depth deep. Target: the full feature branch diff against the base branch.
+```
+
+That focus set is the default because it covers what is expensive to change once this ships:
+structural decisions, the patterns the next feature will copy, security holes that reach production,
+and the performance characteristics that become the baseline. Add lenses whose risk triggers fired
+anywhere in the feature - a migration, a public contract, personal data, a new dependency.
+
+It runs **here, not at merge**, for one reason: its findings produce code changes, and code changes
+must land before QA validates - otherwise QA signs off on a version that is still going to move.
+
+Two things this pass catches that nothing earlier could:
+
+- **The shape of the whole.** Per-increment passes saw one phase each. Duplication across phases, an
+  abstraction that grew three incompatible callers, a boundary that eroded task by task - only visible
+  once it is all there.
+- **What becomes the example.** Whatever ships is what the next feature copies. A shortcut that
+  survives here is a convention by next month.
+
+Handle the findings:
+
+| Finding | Action |
+| ------- | ------ |
+| Confirmed, cheap to fix | Fix it now, in place, and re-run the affected check |
+| Confirmed, needs work | Append to the correction phase in tasks.md and implement it, then return here |
+| Confirmed, out of this feature's scope | File it with an owner; it becomes a carried condition on the gate |
+| Refuted | Drop it |
+
+**Gate check**: if a blocking finding remains (Critical, or High and confirmed, or a constitution MUST
+violation, or an unreviewed one-way door), the build gate is BLOCK. Do not write a test plan for code
+you already know is wrong.
+
+Do not defer a cheap fix to a follow-up task. A follow-up on merged code competes with new work and
+usually loses.
+
+### Step 6: Adversarial Test Plan
 
 The build now knows things the spec never did: what was actually built, where it deviated, and every
 gotcha the implementers hit. That knowledge is worth more as a test plan than as a memory.
@@ -204,7 +248,7 @@ executes it.
 requirement-to-scenario table or in Not Covered with a recorded reason. A requirement in neither is a
 coverage hole the QA run will not find, because it will not look.
 
-### Step 6: Build Gate Record
+### Step 7: Build Gate Record
 
 Apply the `quality-gates` skill, build gate criteria B1-B9. Evidence is command output and file
 anchors, not assertion: run the project's own build, lint, typecheck and test commands and quote what
@@ -213,14 +257,14 @@ they printed.
 Write `FEATURE_DIR/gates/build-{date}.md` with the verdict, the criteria table, the findings and the
 conditions carried into QA.
 
-### Step 7: Registry Update
+### Step 8: Registry Update
 
 Extract patterns, technology decisions, component conventions and discovered anti-patterns from
 `task-results/*.md` into `/memory/architecture-registry.md`, tagged
 `<!-- Added from {feature} ({date}) -->`. "No new patterns - followed existing conventions" is a valid
 and useful entry.
 
-### Step 8: Report
+### Step 9: Report
 
 ```markdown
 ## Build Pipeline Complete
@@ -244,6 +288,11 @@ and useful entry.
 - Corrections applied: {count}/{total}
 - Lenses run: {list} | Skipped: {lens - reason}
 
+### Final Adversarial Review
+- Focus: architecture, design patterns, security, performance{extra lenses}
+- Findings: {confirmed} confirmed ({fixed} fixed in place, {deferred} carried), {refuted} refuted
+- Blocking: {count}
+
 ### Test Plan
 - `test-plan.md`: {n} scenarios ({p1} P1) | Requirements without a scenario: {n}
 
@@ -264,5 +313,7 @@ Report failing checks with their output. A task whose verification failed is `[~
 - **Phase implementation failure**: Log and continue to next phase
 - **Critical confirmed finding on a production path**: fix before continuing, or stop and report
 - **Review failure**: Log error, skip corrections, report to user
+- **Blocking finding in the final review**: gate = BLOCK. Fix it and re-run from step 5; do not write
+  a test plan for code already known to be wrong
 - **Test plan generation failure**: WARN and continue to the gate; QA will fall back to the spec's
   acceptance scenarios, with materially thinner coverage - say so in the report

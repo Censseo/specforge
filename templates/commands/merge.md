@@ -1,16 +1,9 @@
 ---
-description: Run a final adversarial review, then merge the feature branch into main and consolidate documentation into /docs
+description: Merge feature branch into main and consolidate documentation into /docs
 skills:
   - feature-merge
   - codebase-learning
-  - adversarial-review
-  - finding-verification
   - quality-gates
-lenses:
-  - lens-architecture
-  - lens-maintainability
-  - lens-security
-  - lens-performance
 semantic_anchors:
   - Documentation as Code     # Treat docs like code - versioned, reviewed, maintained
   - Single Source of Truth    # One place for each piece of information
@@ -29,8 +22,10 @@ Apply the **`feature-merge`** skill for the consolidation rules: `specs/` is wor
 durable memory, domain specs are merged never overwritten, and conflicts stop for a decision rather
 than being resolved silently.
 
-Before starting, confirm the QA gate is PASS or PASS WITH CONDITIONS (`FEATURE_DIR/gates/qa-*.md`), and
-list any conditions being carried across the merge with their owners.
+Before starting, confirm both gates are PASS or PASS WITH CONDITIONS (`FEATURE_DIR/gates/build-*.md`
+and `gates/qa-*.md`), and list any conditions being carried across the merge with their owners. The
+final adversarial review runs at the end of `/specforge.build`, not here - this command verifies it
+happened and cleared.
 
 Consider the user input before proceeding (if not empty).
 User can specify: branch name (default: current branch), or "dry-run" to preview without merging.
@@ -39,12 +34,11 @@ User can specify: branch name (default: current branch), or "dry-run" to preview
 
 This command completes the feature lifecycle by:
 
-1. **Verifying** all tasks are completed
-2. **Reviewing** the finished feature adversarially, one last time
-3. **Merging** the feature branch into main
-4. **Consolidating** feature documentation into `/docs` (persistent reference)
-5. **Optionally** running `/specforge.learn` to update architecture registry and local CLAUDE.md files
-6. **Pushing** main to remote
+1. **Verifying** all tasks are completed and both gates were cleared
+2. **Merging** the feature branch into main
+3. **Consolidating** feature documentation into `/docs` (persistent reference)
+4. **Optionally** running `/specforge.learn` to update architecture registry and local CLAUDE.md files
+5. **Pushing** main to remote
 
 The `/docs` directory becomes the **single source of truth** for business and functional specifications, referenced by future `/specforge.specify` and `/specforge.plan` executions.
 
@@ -69,47 +63,26 @@ The `/docs` directory becomes the **single source of truth** for business and fu
    - `task-results/` - At least one result file
    - If missing critical files → **WARN** user
 
-4. **Check git status**:
+4. **Verify the gates were cleared**:
+   - `specs/{feature-id}/gates/build-*.md` - the final adversarial review ran here, at the end of
+     build, and its verdict is recorded. If the record is missing or BLOCK, **STOP**: run
+     `/specforge.build` (from its final-review step) or `/specforge.harness --focus architecture,
+     design patterns, security, performance` and clear the findings first
+   - `specs/{feature-id}/gates/qa-*.md` - the QA verdict, and any conditions being carried across
+   - List every carried condition with its owner in the merge report
+
+   The review is not repeated here on purpose. It belongs at the end of build, where its findings can
+   still produce code changes that QA then validates. Repeating it at merge would either duplicate a
+   pass that already ran on the same code, or surface changes after QA had already signed off.
+
+5. **Check git status**:
    - Ensure working directory is clean
    - Ensure branch is up-to-date with remote
    - If dirty or behind → **STOP** and report
 
-### Phase 1.5: Final Adversarial Review
-
-The last look at the whole feature before it becomes history. Everything until now reviewed increments,
-diffs and running behavior; this reviews the finished thing as a coherent piece of the codebase.
-
-```text
-Skill: specforge.harness
-Args: --focus architecture, design patterns, security, performance --depth deep. Target: the full feature branch diff against the base branch.
-```
-
-That focus set is the default because it covers what is expensive to change after merge: structural
-decisions, the patterns future features will copy, security holes that reach production, and
-performance characteristics that become the baseline. Add lenses whose risk triggers fired in this
-feature - a migration, a public contract, personal data, a new dependency.
-
-Read the verdict:
-
-| Verdict | Action |
-| ------- | ------ |
-| PASS | Continue to Phase 2 |
-| PASS WITH CONDITIONS | Continue; each condition becomes a tracked follow-up with an owner, recorded in the merge report |
-| BLOCK | **STOP.** Report the blocking findings. Merging a known Critical is a decision for the user to make explicitly, not a default |
-
-Two things this pass catches that nothing earlier could:
-
-- **Patterns worth copying, and patterns worth not copying.** Whatever merges becomes the example the
-  next feature follows. A shortcut that survives here is a convention by tomorrow.
-- **The shape of the whole.** Per-increment reviews saw one phase each. Duplication across phases,
-  an abstraction that grew three incompatible callers, a boundary that eroded - only visible now.
-
-Findings that are cheap to fix are fixed before the merge, not filed. A follow-up task on a merged
-branch competes with new work and usually loses.
-
 ### Phase 2: Documentation Consolidation
 
-5. **Determine target domains** (a feature can span multiple domains):
+6. **Determine target domains** (a feature can span multiple domains):
 
    a. **Check if domains already specified** in spec.md:
       - Look for `**Domain**:` or `**Domains**:` metadata in spec header
@@ -145,14 +118,14 @@ branch competes with new work and usually loses.
 
    **NOTE**: Domains are user-defined, not hardcoded. The command suggests but user decides.
 
-6. **Ensure /docs structure exists**:
+7. **Ensure /docs structure exists**:
 
    ```bash
    # Create directories for all target domains
    mkdir -p docs/{domain-1} docs/{domain-2} ...
    ```
 
-7. **Consolidate spec into each /docs/{domain}/spec.md** (OpenSpec-style):
+8. **Consolidate spec into each /docs/{domain}/spec.md** (OpenSpec-style):
 
    Repeat for **each target domain**, extracting only the relevant portions of the feature spec:
 
@@ -211,7 +184,7 @@ branch competes with new work and usually loses.
    > See also: [Related feature in {other-domain}](/docs/{other-domain}/spec.md#feature-name)
    ```
 
-8. **Update /docs/README.md** (domain index):
+9. **Update /docs/README.md** (domain index):
 
    Update the index for **all domains** that were created or modified:
 
@@ -235,7 +208,7 @@ branch competes with new work and usually loses.
 
 ### Phase 3: Git Operations
 
-9. **Merge into main**:
+10. **Merge into main**:
 
     ```bash
     # Switch to main
@@ -253,7 +226,7 @@ branch competes with new work and usually loses.
     Docs: /docs/{domain-1}/spec.md, /docs/{domain-2}/spec.md, ..."
     ```
 
-10. **Commit documentation updates** (if not already included):
+11. **Commit documentation updates** (if not already included):
 
     ```bash
     git add docs/
@@ -267,7 +240,7 @@ branch competes with new work and usually loses.
 
 ### Phase 4: Post-Merge Actions
 
-11. **Offer to run /specforge.learn**:
+12. **Offer to run /specforge.learn**:
 
     ```markdown
     Feature merged successfully.
@@ -281,13 +254,13 @@ branch competes with new work and usually loses.
 
     If yes → execute `/specforge.learn {feature-id}`
 
-12. **Push to remote**:
+13. **Push to remote**:
 
     ```bash
     git push origin main
     ```
 
-13. **Cleanup (optional)**:
+14. **Cleanup (optional)**:
 
     Ask user:
     ```markdown
@@ -300,7 +273,7 @@ branch competes with new work and usually loses.
 
 ### Phase 5: Summary
 
-14. **Report completion**:
+15. **Report completion**:
 
     ```markdown
     ## Merge Complete

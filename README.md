@@ -254,7 +254,7 @@ and writes a gate record before the next pipeline starts.
 | ---------------------- | ----------------------------------------------------------------------------------- |
 | `/specforge.workflow`  | **Orchestrator** - design → build → qa, resuming from file state, stopping on BLOCK  |
 | `/specforge.design`    | specify → clarify → plan → adversarial review → checklists → tasks → analyze → complexity analysis |
-| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections → **test plan** |
+| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections → **final adversarial review** → **test plan** |
 | `/specforge.qa`        | execute `test-plan.md` ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
 | `/specforge.testplan`  | The adversarial test plan on its own, for regenerating or scoping it                 |
 | `/specforge.harness`   | The adversarial review harness on any target, with any lens or focus selection       |
@@ -284,11 +284,15 @@ Artifacts a pipeline produces beyond the usual ones:
 | `gates/{phase}-{date}.md` | each pipeline | Verdict, criteria table, findings, carried conditions |
 | `qa-report.md` | qa | Final validation status, rounds, remaining failures |
 
-`test-plan.md` is written at the **end** of build, not from the spec: by then the pipeline knows what
-was actually built, where it deviated from the plan, and every gotcha the implementation hit. Those
-deviations are the most productive source of test scenarios there is, and they do not exist yet at
-design time. `/specforge.merge` then runs one final adversarial review - architecture, design patterns,
-security, performance - before anything lands.
+Build ends with two passes that only make sense once everything is there. First a **final adversarial
+review** of the whole branch diff - architecture, design patterns, security, performance, the things
+that are expensive to change once shipped. It runs here rather than at merge because its findings
+produce code changes, and those must land before QA validates; a review at merge time would surface
+changes after QA had already signed off.
+
+Then `test-plan.md`, written from what was actually built rather than from the spec: by that point the
+pipeline knows where the implementation deviated and every gotcha it hit. Those deviations are the most
+productive source of test scenarios there is, and they do not exist yet at design time.
 
 The macro commands are orchestrators, not replacements: they call the same commands and skills as the
 individual ones, so the two styles mix freely.

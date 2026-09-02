@@ -63,10 +63,14 @@ instead of deriving scenarios from the spec at run time.
   scenarios as blocked, and let the plan's "Fails if" decide pass or fail
 - QA retry rounds re-run the failing scenarios plus every P1, since a fix can break what passed
 
-#### Final adversarial review before merge
+#### Final adversarial review at the end of build
 
-- `/specforge.merge` gains Phase 1.5: a full-branch adversarial pass focused on architecture, design
-  patterns, security and performance - what is expensive to change after merge. BLOCK stops the merge
+- `/specforge.build` gains a final full-branch adversarial pass after the corrections and before the
+  test plan, focused on architecture, design patterns, security and performance. It runs there rather
+  than at merge because its findings produce code changes, which must land before QA validates
+- Cheap fixes are applied in place; a blocking finding makes the build gate BLOCK and no test plan is
+  written for code already known to be wrong
+- `/specforge.merge` verifies both gate records cleared instead of repeating the review
 - `/specforge.harness` gains `--focus`, mapping free text naming domains (in any language) to lenses,
   so it stands in for an agent's built-in `/review` command without depending on one
 
