@@ -55,6 +55,19 @@ say that downstream rework risk rises.
 
 7. Optionally run `lens-requirements` over the updated spec to catch what the questions did not.
 
+## Non-Interactive Mode
+
+When the input says non-interactive (as `/specforge.design` does), the questioning loop still runs -
+the questions are what find the ambiguity - but you answer them yourself:
+
+- For each question, apply your own **Recommended** or **Suggested** answer. Never wait for input.
+- Record it identically: `- Q: <question> -> A: <answer>` under `## Clarifications`, and integrate it
+  into the affected section.
+- Mark each auto-applied answer as an assumption in the spec's Assumptions section. An assumption that
+  is written down can be attacked by the design review; one that stays in your head cannot.
+- Report the count of auto-applied answers separately from user-supplied ones. A design where twelve
+  decisions were made for the user is a different artifact from one where two were.
+
 ## Report
 
 Questions asked and answered, spec path, sections touched, and the coverage table marking each

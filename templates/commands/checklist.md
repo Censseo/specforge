@@ -73,6 +73,21 @@ belongs in a test, not here.
 6. Offer to mark passing items as checked. Only PASS items, only with confirmation, with a
    `<!-- Validated: {date} -->` marker.
 
+## Non-Interactive Mode
+
+When the input says non-interactive (as `/specforge.design` does):
+
+- Skip the clarifying questions; use your own recommended answer for each and note it in the
+  checklist header.
+- `pre-implementation, for all domains, ... single consolidated file` means one file covering every
+  applicable domain (constitution compliance, architecture alignment, requirements, security, data,
+  UX, operations as relevant), not one file per domain.
+- In review mode, `propose and apply remediation` means: for each FAIL or PARTIAL item, fix the
+  **spec or plan** so the item passes, then re-evaluate it. Remediation edits the artifact - never the
+  checklist item, and never the checkbox on an item that still fails.
+- Report which items were remediated and which remain FAIL. CRITICAL items still failing stop the
+  caller's pipeline.
+
 ## Next Steps
 
 | Result | Recommendation |

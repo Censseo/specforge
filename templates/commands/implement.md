@@ -96,6 +96,18 @@ honest completion reporting and the registry update.
    check suite and quote the output, then update `/memory/architecture-registry.md` with the patterns,
    decisions, conventions and anti-patterns the feature established.
 
+## Scoped Invocation
+
+| Argument | Effect |
+| -------- | ------ |
+| `phase {N}` | Execute only that phase of `tasks.md`. Earlier phases are assumed done; verify their tasks are `[X]` and report if not |
+| `--auto-continue` | Do not stop between tasks or at the end of the phase to ask whether to proceed. Blockers are still reported, and a Critical failure still halts |
+| A task-range or "the last phase in tasks.md" | Execute exactly those tasks, nothing else |
+
+Under `--auto-continue`, the checklist gate in step 2 does not block: log the incomplete checklists in
+the report and proceed. Everything else - verification per task, result files, honest status - is
+unchanged. Auto-continue removes the prompts, not the rigor.
+
 ## Report
 
 Task status per phase, check-suite output including failures, findings fixed in place, registry

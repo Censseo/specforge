@@ -244,26 +244,41 @@ forge check
 
 After running `forge init`, your AI coding agent will have access to these slash commands for structured development:
 
-#### Phase Workflow Commands
+#### Macro Pipeline Commands
 
-Run the three-phase workflow. Each phase orchestrates the relevant skills, runs an adversarial
-review through domain lenses, and writes a gate record before the next phase starts:
+Each of these runs a full pipeline non-interactively: it chains the individual commands below,
+applies recommended defaults instead of stopping to ask, red-teams its output through domain lenses,
+and writes a gate record before the next pipeline starts.
 
-| Command                | Description                                                                       |
-| ---------------------- | --------------------------------------------------------------------------------- |
-| `/specforge.workflow`  | **Orchestrator** - runs design → build → qa, stopping at any gate that blocks      |
-| `/specforge.design`    | Specify, clarify and plan, then red-team the design artifacts and clear the gate   |
-| `/specforge.build`     | Decompose into tasks, implement test-first, review each increment, clear the gate  |
-| `/specforge.qa`        | Validate against the running system, analyse, review, clear the release gate       |
-| `/specforge.harness`   | Run the adversarial review harness on any target with any lens selection           |
+| Command                | Pipeline                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `/specforge.workflow`  | **Orchestrator** - design → build → qa, resuming from file state, stopping on BLOCK  |
+| `/specforge.design`    | specify → clarify → plan → adversarial review → checklists → tasks → analyze → complexity analysis |
+| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass, then review → corrections |
+| `/specforge.qa`        | validate ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
+| `/specforge.harness`   | The adversarial review harness on any target, with any lens selection                |
 
 ```bash
 /specforge.workflow Add OAuth2 login with Google and GitHub
+/specforge.design Add OAuth2 login with Google and GitHub
+/specforge.build phase 3
 /specforge.harness src/api/ --lens security,data
 ```
 
-The phase commands are orchestrators, not replacements: they call the same underlying skills as the
-individual commands below, so the two styles can be mixed freely.
+Each pipeline hands off to the next, so `/specforge.design` chains into `/specforge.build` and on into
+`/specforge.qa`. Every stage has a gate check: a failure that would make the next stage meaningless
+stops the pipeline and reports, rather than producing tasks from a broken plan.
+
+Artifacts a pipeline produces beyond the usual ones:
+
+| File | Written by | Purpose |
+| ---- | ---------- | ------- |
+| `complexity-analysis.md` | design | Per-phase DIRECT / BREAKDOWN verdict and lens exposure, consumed by build |
+| `gates/{phase}-{date}.md` | each pipeline | Verdict, criteria table, findings, carried conditions |
+| `qa-report.md` | qa | Final validation status, rounds, remaining failures |
+
+The macro commands are orchestrators, not replacements: they call the same commands and skills as the
+individual ones, so the two styles mix freely.
 
 #### Core Workflow Commands
 
@@ -330,25 +345,24 @@ step-by-step full workflow, and the quick workflow for small changes.
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PHASE WORKFLOW (/specforge.workflow)                      │
+│                   MACRO PIPELINE (/specforge.workflow)                       │
 │                                                                              │
-│    ┌─────────────┐      ┌─────────────┐      ┌─────────────┐                │
-│    │   DESIGN    │      │    BUILD    │      │     QA      │                │
-│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
-│    │ specify     │      │ tasks       │      │ validate    │                │
-│    │ clarify     │ ───► │ implement   │ ───► │ analyze     │                │
-│    │ plan        │      │             │      │ review      │                │
-│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
-│    │ adversarial │      │ adversarial │      │ adversarial │                │
-│    │ review      │      │ review      │      │ review      │                │
-│    │ (8 lenses)  │      │ (8 lenses)  │      │ (8 lenses)  │                │
-│    ├─────────────┤      ├─────────────┤      ├─────────────┤                │
-│    │ DESIGN GATE │      │ BUILD GATE  │      │  QA GATE    │                │
-│    │ D1..D10     │      │ B1..B9      │      │  Q1..Q8     │                │
-│    └─────────────┘      └─────────────┘      └─────────────┘                │
+│  ┌── DESIGN ──────────┐  ┌── BUILD ───────────┐  ┌── QA ─────────────────┐  │
+│  │ specify            │  │ per phase:         │  │  ┌─ validate ◄──┐     │  │
+│  │ clarify (auto)     │  │   breakdown?       │  │  │      │       │     │  │
+│  │ plan               │  │   implement        │  │  │   failed?    │     │  │
+│  │ ADVERSARIAL REVIEW │─►│   ADVERSARIAL PASS │─►│  │      │  fix ─┘     │  │
+│  │ checklists (auto)  │  │ review             │  │  │   max 3 rounds     │  │
+│  │ tasks              │  │ corrections        │  │  └──────┬─────────────┘  │
+│  │ analyze (auto)     │  │                    │  │ ADVERSARIAL REVIEW      │  │
+│  │ complexity analysis│  │                    │  │                         │  │
+│  ├────────────────────┤  ├────────────────────┤  ├─────────────────────────┤  │
+│  │ DESIGN GATE D1-D10 │  │ BUILD GATE B1-B9   │  │ QA GATE Q1-Q8           │  │
+│  └────────────────────┘  └────────────────────┘  └─────────────────────────┘  │
 │                                                                              │
 │   Each gate returns PASS / PASS WITH CONDITIONS / BLOCK and writes a record  │
-│   to specs/{feature}/gates/. A blocked gate stops the next phase.            │
+│   to specs/{feature}/gates/. A blocked gate stops the next pipeline.         │
+│   (auto) = runs non-interactively, applying the recommended answer.          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 

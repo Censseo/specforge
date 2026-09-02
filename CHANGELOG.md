@@ -26,18 +26,38 @@ agent's skills directory (`.claude/skills/`, `.opencode/skills/`, ...) by `forge
 - Locally edited skill files are preserved across `forge update` via a content manifest
   (`skills/.specforge-skills.json`)
 
-#### Phase workflow commands
+#### Macro pipeline commands
 
-| Command | Description |
-| ------- | ----------- |
-| `/specforge.workflow` | Orchestrates design → build → qa, stopping at any gate that blocks |
-| `/specforge.design` | Specify, clarify, plan, red-team the design artifacts, clear the design gate |
-| `/specforge.build` | Decompose, implement test-first, review each increment, clear the build gate |
-| `/specforge.qa` | Validate, analyse, review, clear the release gate |
-| `/specforge.harness` | Run the adversarial review harness on any target with any lens selection |
+Non-interactive pipelines that chain the individual commands, apply recommended defaults instead of
+stopping to ask, red-team their output, and gate before handing off.
 
-Each phase writes a gate record to `specs/{feature}/gates/` with a verdict of PASS,
-PASS WITH CONDITIONS or BLOCK. The workflow resumes from file state, so it survives session loss.
+| Command | Pipeline |
+| ------- | -------- |
+| `/specforge.workflow` | design → build → qa, resuming from file state, stopping on BLOCK |
+| `/specforge.design` | specify → clarify (auto) → plan → adversarial review → checklists (auto) → tasks → analyze (auto) → complexity analysis |
+| `/specforge.build` | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections |
+| `/specforge.qa` | validate ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
+| `/specforge.harness` | The adversarial review harness on any target with any lens selection |
+
+- Each pipeline writes a gate record to `specs/{feature}/gates/` with a verdict of PASS,
+  PASS WITH CONDITIONS or BLOCK, and stops rather than feeding a broken artifact to the next stage
+- `/specforge.design` writes `complexity-analysis.md` classifying each task phase DIRECT or BREAKDOWN
+  and recording its lens exposure; `/specforge.build` consumes it
+- `/specforge.qa` writes `qa-report.md` with the validation rounds and remaining failures
+- The workflow resumes from file state, so it survives session loss
+
+#### Non-interactive and scoped invocation contracts
+
+The sub-commands the pipelines call now document the arguments the pipelines send:
+
+- `clarify`: non-interactive mode applies its own recommended answer per question and records it as a
+  written assumption, so the adversarial review can attack it
+- `checklist`: non-interactive generation, consolidated multi-domain files, and remediation that fixes
+  the spec or plan rather than the checkbox
+- `analyze`: remediation mode, with two things it refuses to auto-resolve - a genuine conflict between
+  requirements, and a constitution conflict
+- `breakdown`: `phase {N}` processes that phase without the progression prompt
+- `implement`: `phase {N}` and `--auto-continue` scope execution and remove the prompts, not the rigor
 
 #### Adversarial review harness
 

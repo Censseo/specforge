@@ -18,21 +18,64 @@ This guide describes the different workflows available in SpecForge and when to 
 
 ---
 
-## Phase Workflow (Design → Build → QA)
+## Macro Pipelines (Design → Build → QA)
 
-The phase workflow wraps the step-by-step commands in three gated phases. Each phase runs its skills,
-then an adversarial review through domain lenses, then a gate that returns PASS, PASS WITH CONDITIONS
-or BLOCK and writes a record to `specs/{feature}/gates/`.
+The macro commands chain the step-by-step commands into non-interactive pipelines. Each applies
+recommended defaults instead of stopping to ask, red-teams its output through domain lenses, and
+writes a gate record to `specs/{feature}/gates/` that returns PASS, PASS WITH CONDITIONS or BLOCK.
 
 ```bash
 /specforge.workflow Add OAuth2 login with Google and GitHub
 ```
 
-| Phase | Command | Does | Gate |
-|-------|---------|------|------|
-| Design | `/specforge.design` | specify → clarify → plan, then red-team the artifacts | D1-D10 |
-| Build | `/specforge.build` | tasks → implement, reviewing each increment | B1-B9 |
-| QA | `/specforge.qa` | validate → analyze → review, then the release review | Q1-Q8 |
+| Pipeline | Command | Chain | Gate |
+|----------|---------|-------|------|
+| Design | `/specforge.design` | specify → clarify (auto) → plan → **adversarial review** → checklists (auto) → tasks → analyze (auto) → complexity analysis | D1-D10 |
+| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections | B1-B9 |
+| QA | `/specforge.qa` | validate ⇄ fix loop (max 3, early exit on no progress) → **adversarial release review** | Q1-Q8 |
+
+### Non-interactive by design
+
+The pipelines answer their own questions. `clarify` applies its own recommendation for each ambiguity
+and records it as an assumption; `checklist` remediates failing items by fixing the spec or plan;
+`analyze` applies its own remediations. Two things this deliberately does **not** do:
+
+- It never resolves a genuine conflict between two requirements - it cannot know which one you meant.
+  That is a CRITICAL finding that stops the pipeline.
+- It never marks a checklist item passed without changing the artifact that made it fail.
+
+Every auto-applied answer is written down. That is what makes the adversarial review able to attack
+it, and what lets you see, at the end, how many decisions were made on your behalf.
+
+### Gate checks between stages
+
+A stage that would make the next one meaningless stops the pipeline rather than feeding it garbage:
+
+| Stage | Stops the pipeline when |
+|-------|-------------------------|
+| specify | spec.md missing or empty |
+| plan | architecture divergences need approval |
+| adversarial review | a blocking finding remains (Critical, or High confirmed, or constitution MUST, or an unreviewed one-way door) |
+| checklists | a CRITICAL item still FAILs after remediation |
+| analyze | a CRITICAL finding remains after remediation |
+| validate | the environment never started (INCOMPLETE twice - retrying will not help) |
+
+### Complexity analysis
+
+Design ends by classifying each phase of `tasks.md` as DIRECT or BREAKDOWN, and recording which lenses
+that phase's content exposes. Build reads `complexity-analysis.md` to decide where to run
+`/specforge.breakdown` first and which lenses to run on each increment.
+
+A phase needs breakdown if it meets two or more of: more than 8 tasks, 3+ domains, many sequential
+dependency chains, REFACTOR or complex EXTEND tasks, or exposure to security / migration /
+concurrency / public contract changes.
+
+### The QA loop
+
+QA runs validate, and if scenarios fail, fix, then re-validate - up to three rounds. It exits early
+when the failure count stops dropping, because a round that fixes nothing will not be rescued by the
+next one. Findings from the adversarial release review do **not** re-enter the loop: the loop is for
+scenario failures, and those findings go to the gate where a human decides.
 
 ### What each phase reviews
 
@@ -469,10 +512,10 @@ For small, focused modifications without the full workflow overhead.
 
 | Phase | Command | Input | Output |
 |-------|---------|-------|--------|
-| **Workflow** | `/specforge.workflow` | Description or empty | All three phases, gate records |
-| | `/specforge.design` | Description or empty | spec.md, plan.md, gates/design-*.md |
-| | `/specforge.build` | - | tasks.md, code, gates/build-*.md |
-| | `/specforge.qa` | Scope | validation/, gates/qa-*.md |
+| **Pipelines** | `/specforge.workflow` | Description or empty | All three pipelines, gate records |
+| | `/specforge.design` | Description or empty | spec.md, plan.md, tasks.md, checklists/, complexity-analysis.md, gates/design-*.md |
+| | `/specforge.build` | Optional `phase N` | Code, task-results/, reviews/, gates/build-*.md |
+| | `/specforge.qa` | - | validation/, qa-report.md, gates/qa-*.md |
 | | `/specforge.harness` | Target + lenses | Findings and a verdict |
 | **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
 | | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |

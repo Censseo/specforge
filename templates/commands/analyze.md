@@ -47,6 +47,19 @@ Read-only. Produce the report, offer a remediation plan, and change nothing with
 
 6. Give concrete next actions with commands, not advice. Then ask whether to produce remediation edits.
 
+## Remediation Mode
+
+Analysis is read-only **by default**. When the caller explicitly asks for remediation to be applied
+(as `/specforge.design` does), that instruction is the approval - do not ask again. Then:
+
+- Apply fixes to the artifact that is wrong, in severity order.
+- A coverage gap is fixed by adding the missing task, not by deleting the requirement.
+- A conflict between two requirements is not auto-remediable: you cannot know which one the user
+  meant. Report it and stop; that is a CRITICAL finding.
+- A constitution conflict is never auto-remediable by changing the constitution. Change the artifact,
+  or report it.
+- Re-run the detection passes after remediating and report the residual counts, not the original ones.
+
 ## Discipline
 
 - Report what is absent as absent; do not infer content that is not written.

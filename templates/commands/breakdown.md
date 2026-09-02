@@ -25,6 +25,15 @@ choose between extending existing code and writing new code.
 
 Consider the user input before proceeding (if not empty).
 
+## Scoped and Non-Interactive Invocation
+
+`phase {N}` in the input names the phase to process directly. Combined with a non-interactive
+instruction (as `/specforge.build` sends), skip the progression confirmation in Phase 1 step 7: process
+that phase, write its task plans, and return without asking about the next one.
+
+Everything else is unchanged - the research pass and the plan detail are the point of this command,
+and skipping them to save a round trip defeats it.
+
 ## Outline
 
 > **Activated Frameworks**: Work Breakdown Structure for decomposition, Critical Path Method for dependencies, Progressive Elaboration for detail refinement, Spike for research tasks.
