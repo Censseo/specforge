@@ -120,13 +120,13 @@ Lens selection is routed automatically by artifact type and risk signal
   bodies are unchanged
 - `setup-skills` no longer regenerates skills that ship with SpecForge; it adds project-specific ones
 
-### Pending
+### Known Limitation
 
-- Release packaging (`.github/workflows/scripts/create-release-packages.sh`) does not yet install
-  skills or substitute the full `__AGENT_*__` placeholder set. The change is prepared in
-  `docs/patches/release-packaging-skills.patch` and needs to be applied by someone with the
-  `workflows` permission. Until then, release zips ship commands without the skills they invoke;
-  installing with `forge init` is unaffected.
+- Release packaging (`.github/workflows/scripts/create-release-packages.sh`) installs commands but not
+  skills, and substitutes only `__AGENT__` rather than the full `__AGENT_*__` set. This affects the
+  GitHub-release download path only: `forge init --force-download`, and running from a source checkout
+  with no built wheel. The normal install is unaffected - `templates/` is force-included into the
+  wheel, so `forge init` builds from bundled templates and installs skills itself.
 
 ## [0.1.0] - 2026-02-08
 
