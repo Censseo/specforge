@@ -6,13 +6,189 @@ This guide describes the different workflows available in SpecForge and when to 
 
 | Scenario | Workflow | Commands |
 |----------|----------|----------|
+| New feature, gated end to end | Phase Workflow | workflow (design → build → qa) |
 | New feature from scratch | Full Workflow | idea → specify → clarify → plan → tasks → implement → validate → merge |
 | New feature (simple) | Standard Workflow | specify → plan → tasks → implement → merge |
 | Bug fix | Quick Change | change |
 | Spec clarification | Quick Change | change |
 | User feedback | Quick Change | change |
 | Code refinement | Quick Change | change |
-| Major refactoring | Full Workflow | specify → plan → tasks → implement → merge |
+| Major refactoring | Phase Workflow | workflow |
+| Reviewing existing work | Harness | harness |
+
+---
+
+## Macro Pipelines (Design → Build → QA)
+
+The macro commands chain the step-by-step commands into non-interactive pipelines. Each applies
+recommended defaults instead of stopping to ask, red-teams its output through domain lenses, and
+writes a gate record to `specs/{feature}/gates/` that returns PASS, PASS WITH CONDITIONS or BLOCK.
+
+```bash
+/specforge.workflow Add OAuth2 login with Google and GitHub
+```
+
+| Pipeline | Command | Chain | Gate |
+|----------|---------|-------|------|
+| Design | `/specforge.design` | specify → clarify (auto) → plan → **adversarial review** → checklists (auto) → tasks → analyze (auto) → complexity analysis | D1-D10 |
+| Build | `/specforge.build` | per phase: breakdown (if complex) → implement → **adversarial pass**; then review → corrections → **final adversarial review** → **test plan** | B1-B9 |
+| QA | `/specforge.qa` | execute `test-plan.md` ⇄ fix loop (max 3, early exit on no progress) → **adversarial release review** | Q1-Q8 |
+| Merge | `/specforge.merge` | verify both gates → docs consolidation → merge | - |
+
+### Models
+
+A slash command runs under one model for its whole execution; it cannot switch between pipelines.
+`/specforge.workflow` is therefore a convenience rather than the default. To use a different model per
+pipeline - a stronger one for design, a cheaper one for the long mechanical build - run the three
+separately and switch between them; their handoffs chain them for you. For per-step variation inside a
+pipeline, set models on the specialised agents in `.specforge`-installed `agents/specforge/`, which
+`/specforge.implement` honours per task.
+
+### Non-interactive by design
+
+The pipelines answer their own questions. `clarify` applies its own recommendation for each ambiguity
+and records it as an assumption; `checklist` remediates failing items by fixing the spec or plan;
+`analyze` applies its own remediations. Two things this deliberately does **not** do:
+
+- It never resolves a genuine conflict between two requirements - it cannot know which one you meant.
+  That is a CRITICAL finding that stops the pipeline.
+- It never marks a checklist item passed without changing the artifact that made it fail.
+
+Every auto-applied answer is written down. That is what makes the adversarial review able to attack
+it, and what lets you see, at the end, how many decisions were made on your behalf.
+
+### Gate checks between stages
+
+A stage that would make the next one meaningless stops the pipeline rather than feeding it garbage:
+
+| Stage | Stops the pipeline when |
+|-------|-------------------------|
+| specify | spec.md missing or empty |
+| plan | architecture divergences need approval |
+| adversarial review | a blocking finding remains (Critical, or High confirmed, or constitution MUST, or an unreviewed one-way door) |
+| checklists | a CRITICAL item still FAILs after remediation |
+| analyze | a CRITICAL finding remains after remediation |
+| validate | the environment never started (INCOMPLETE twice - retrying will not help) |
+
+### Complexity analysis
+
+Design ends by classifying each phase of `tasks.md` as DIRECT or BREAKDOWN, and recording which lenses
+that phase's content exposes. Build reads `complexity-analysis.md` to decide where to run
+`/specforge.breakdown` first and which lenses to run on each increment.
+
+A phase needs breakdown if it meets two or more of: more than 8 tasks, 3+ domains, many sequential
+dependency chains, REFACTOR or complex EXTEND tasks, or exposure to security / migration /
+concurrency / public contract changes.
+
+### The adversarial test plan
+
+Build then writes `FEATURE_DIR/test-plan.md`, and QA executes it. The timing is the point: at the
+end of build the pipeline knows what was actually built, where it deviated from the plan, and every
+gotcha the implementation hit. A plan derived from the spec alone tests what was intended; those
+deviations are where the bugs are, and they do not exist yet at design time.
+
+The plan covers ten classes, and an empty class is a hole rather than a clean bill:
+
+| Class | Covers |
+|-------|--------|
+| C1 Happy path | The primary flow per user story |
+| C2 Boundary | 0, 1, max, max+1, empty, unicode, negative, duplicate |
+| C3 Invalid input | Malformed, wrong type, missing field, injection-shaped |
+| C4 Permission | What each actor cannot do, including another user's records by id |
+| C5 State | Illegal transitions, expired / deleted / already-processed entities |
+| C6 Failure | Dependency down, slow, garbage; partial failure mid-operation |
+| C7 Concurrency | Same action twice, simultaneously, out of order; stale edit |
+| C8 Regression | What existed before and shares code with the change |
+| C9 Data integrity | Is the stored state afterwards exactly what it should be |
+| C10 Exploratory | Charters, not scripts |
+
+Each scenario carries preconditions, exact steps, an expected **observable** outcome, and a "Fails if"
+clause - which exists so a marginal result cannot be rationalised into a pass. Scenarios that cannot
+run here are marked `BLOCKED` with a reason, and the plan has an explicit Not Covered section: a plan
+that silently omits what it could not test reports better coverage than it has.
+
+Regenerate or scope it on its own with `/specforge.testplan`, `/specforge.testplan smoke`, or
+`/specforge.testplan US2`.
+
+### The final review at the end of build
+
+Build's last review pass runs over the whole feature branch diff, focused on architecture, design
+patterns, security and performance - the things that are expensive to change once shipped.
+
+It sits at the end of **build**, not at merge, for one reason: its findings produce code changes, and
+those must land before QA validates. A review at merge time either duplicates a pass that already ran
+on the same code, or surfaces changes after QA has already signed off on something else.
+
+It catches two things nothing earlier could. The shape of the whole - duplication across phases, an
+abstraction that grew three incompatible callers, a boundary that eroded task by task - which the
+per-increment passes could not see because each saw one phase. And the fact that whatever ships becomes
+the example the next feature copies: a shortcut that survives here is a convention by next month.
+
+Cheap fixes are applied in place rather than filed. A follow-up task on merged code competes with new
+work and usually loses. A blocking finding makes the build gate BLOCK, and no test plan is written for
+code already known to be wrong.
+
+`/specforge.merge` verifies this happened and cleared, rather than repeating it.
+
+Run the same pass on demand with:
+
+```bash
+/specforge.harness --focus architecture, design patterns, security, performance
+```
+
+`--focus` takes free text naming domains, in any language, and maps it to lenses - so it replaces an
+agent's built-in `/review` without depending on one.
+
+### The QA loop
+
+QA runs validate against `test-plan.md`, and if scenarios fail, fix, then re-validate - up to three
+rounds. Retry rounds re-run the failing scenarios **plus every P1**, because a fix can break something
+that passed. It exits early when the failure count stops dropping, because a round that fixes nothing
+will not be rescued by the next one. Findings from the adversarial release review do **not** re-enter the loop: the loop is for
+scenario failures, and those findings go to the gate where a human decides.
+
+### What each phase reviews
+
+| Phase | Default lenses |
+|-------|----------------|
+| Design | requirements, architecture, domain-model, api-contract, data, security, privacy-compliance, reliability |
+| Build | architecture, maintainability, security, concurrency, data, testing, performance, api-contract |
+| QA | requirements, testing, security, reliability, performance, observability, accessibility, operations |
+
+Lenses with no surface in the feature are dropped, and the skip is recorded. Lenses whose risk
+triggers fire (a migration, a new endpoint, an LLM call, a UI component...) are added automatically.
+
+### Gates
+
+A finding blocks when it is Critical, or High and confirmed, or violates a constitution MUST, or is a
+one-way door, or breaks a stated invariant. Everything else is advisory but still gets an owner and a
+task. The cost of the fix never changes whether a finding blocks.
+
+Gate verdicts are stale once their artifacts change - the workflow re-runs them rather than carrying a
+PASS across a rewrite.
+
+### Resuming
+
+The workflow reads its state from files (`gates/`, `tasks.md`, `validation/bugs/`, `task-results/`),
+so it survives a lost session. Re-running `/specforge.workflow` re-enters at the earliest phase with an
+open blocking item.
+
+---
+
+## Adversarial Review (Any Target)
+
+```bash
+/specforge.harness                          # the current diff vs the base branch
+/specforge.harness src/api/                 # a path
+/specforge.harness spec.md                  # an artifact
+/specforge.harness --lens security,data     # explicit lens selection
+/specforge.harness --phase design           # a phase's default lens set
+/specforge.harness --depth deep             # every triggered lens, no cap
+```
+
+Every finding must name a concrete failure (inputs or state → wrong outcome), carry evidence anchored
+to a location, and survive a falsification attempt. Findings that are refuted are dropped, not
+downgraded - which is what makes a zero-finding result meaningful.
 
 ---
 
@@ -406,6 +582,12 @@ For small, focused modifications without the full workflow overhead.
 
 | Phase | Command | Input | Output |
 |-------|---------|-------|--------|
+| **Pipelines** | `/specforge.workflow` | Description or empty | All three pipelines, gate records |
+| | `/specforge.design` | Description or empty | spec.md, plan.md, tasks.md, checklists/, complexity-analysis.md, gates/design-*.md |
+| | `/specforge.build` | Optional `phase N` | Code, task-results/, reviews/, gates/build-*.md |
+| | `/specforge.qa` | - | validation/, qa-report.md, gates/qa-*.md |
+| | `/specforge.testplan` | Optional scope | test-plan.md |
+| | `/specforge.harness` | Target + lenses or --focus | Findings and a verdict |
 | **Setup** | `/specforge.setup` | - | Full setup (orchestrator) |
 | | `/specforge.setup-bootstrap` | from-code/from-docs/from-specs | constitution + /docs/{domain}/ |
 | | `/specforge.setup-agents` | - | agents + skills + MCP |
@@ -447,3 +629,7 @@ For small, focused modifications without the full workflow overhead.
 2. **Review code periodically** - Don't accumulate tech debt
 3. **Extract patterns** - Keep architecture registry current
 4. **Use checklists** - Validate requirements, not just code
+5. **Review each increment, not the whole feature** - A defect found three tasks later costs a fix;
+   found at the end it costs a redesign
+6. **Falsify before reporting** - A review whose findings do not hold up teaches everyone to ignore it
+7. **Record what you skipped** - An unrecorded skipped lens is a silent hole in the coverage

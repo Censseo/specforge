@@ -1,5 +1,7 @@
 ---
-description: Configure skills based on detected project frameworks
+description: Configure project-specific skills based on detected frameworks, on top of the SpecForge skills installed with the toolkit.
+skills:
+  - semantic-anchors
 scripts:
   sh: scripts/bash/setup-hooks.sh --json --agent-dir __AGENT_DIR__
   ps: scripts/powershell/setup-hooks.ps1 -Json -AgentDir __AGENT_DIR__
@@ -13,7 +15,16 @@ $ARGUMENTS
 
 ## Purpose
 
-Detect project technology stack and create framework-specific skills.
+Detect the project's technology stack and create framework-specific skills.
+
+SpecForge already installs its own skill set into `__AGENT_DIR__/skills/` - the workflow method skills
+(`spec-authoring`, `technical-planning`, `implementation-execution`, ...), the adversarial review
+harness (`adversarial-review`, `finding-verification`, `quality-gates`) and the domain lenses
+(`lens-security`, `lens-data`, `lens-accessibility`, ...). This command adds what those cannot know:
+the conventions of *this* project's frameworks.
+
+Do not regenerate or overwrite a skill whose name already exists in `__AGENT_DIR__/skills/`. Extend it,
+or pick a project-specific name.
 
 ---
 

@@ -244,6 +244,59 @@ forge check
 
 After running `forge init`, your AI coding agent will have access to these slash commands for structured development:
 
+#### Macro Pipeline Commands
+
+Each of these runs a full pipeline non-interactively: it chains the individual commands below,
+applies recommended defaults instead of stopping to ask, red-teams its output through domain lenses,
+and writes a gate record before the next pipeline starts.
+
+| Command                | Pipeline                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `/specforge.workflow`  | **Orchestrator** - design → build → qa, resuming from file state, stopping on BLOCK  |
+| `/specforge.design`    | specify → clarify → plan → adversarial review → checklists → tasks → analyze → complexity analysis |
+| `/specforge.build`     | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections → **final adversarial review** → **test plan** |
+| `/specforge.qa`        | execute `test-plan.md` ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
+| `/specforge.testplan`  | The adversarial test plan on its own, for regenerating or scoping it                 |
+| `/specforge.harness`   | The adversarial review harness on any target, with any lens or focus selection       |
+
+```bash
+/specforge.workflow Add OAuth2 login with Google and GitHub
+/specforge.design Add OAuth2 login with Google and GitHub
+/specforge.build phase 3
+/specforge.testplan                 # regenerate the plan, or /specforge.testplan smoke
+/specforge.harness --focus architecture, design patterns, security, performance
+```
+
+**Models**: a slash command runs under one model for its whole execution. `/specforge.workflow` is
+therefore a convenience - to use a different model per pipeline, run `design`, `build` and `qa`
+separately and switch between them. Their handoffs chain them for you.
+
+Each pipeline hands off to the next, so `/specforge.design` chains into `/specforge.build` and on into
+`/specforge.qa`. Every stage has a gate check: a failure that would make the next stage meaningless
+stops the pipeline and reports, rather than producing tasks from a broken plan.
+
+Artifacts a pipeline produces beyond the usual ones:
+
+| File | Written by | Purpose |
+| ---- | ---------- | ------- |
+| `complexity-analysis.md` | design | Per-phase DIRECT / BREAKDOWN verdict and lens exposure, consumed by build |
+| `test-plan.md` | build | Adversarial scenarios across 10 coverage classes, executed by qa |
+| `gates/{phase}-{date}.md` | each pipeline | Verdict, criteria table, findings, carried conditions |
+| `qa-report.md` | qa | Final validation status, rounds, remaining failures |
+
+Build ends with two passes that only make sense once everything is there. First a **final adversarial
+review** of the whole branch diff - architecture, design patterns, security, performance, the things
+that are expensive to change once shipped. It runs here rather than at merge because its findings
+produce code changes, and those must land before QA validates; a review at merge time would surface
+changes after QA had already signed off.
+
+Then `test-plan.md`, written from what was actually built rather than from the spec: by that point the
+pipeline knows where the implementation deviated and every gotcha it hit. Those deviations are the most
+productive source of test scenarios there is, and they do not exist yet at design time.
+
+The macro commands are orchestrators, not replacements: they call the same commands and skills as the
+individual ones, so the two styles mix freely.
+
 #### Core Workflow Commands
 
 Essential commands for the Spec-Driven Development workflow:
@@ -304,7 +357,33 @@ Use `/specforge.change` when:
 
 ### Workflow Overview
 
-SpecForge supports two main workflows:
+SpecForge supports three workflows: the three-phase workflow with quality gates, the classic
+step-by-step full workflow, and the quick workflow for small changes.
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   MACRO PIPELINE (/specforge.workflow)                       │
+│                                                                              │
+│  ┌── DESIGN ──────────┐  ┌── BUILD ───────────┐  ┌── QA ─────────────────┐  │
+│  │ specify            │  │ per phase:         │  │  ┌─ validate ◄──┐     │  │
+│  │ clarify (auto)     │  │   breakdown?       │  │  │      │       │     │  │
+│  │ plan               │  │   implement        │  │  │   failed?    │     │  │
+│  │ ADVERSARIAL REVIEW │─►│   ADVERSARIAL PASS │─►│  │      │  fix ─┘     │  │
+│  │ checklists (auto)  │  │ review             │  │  │   max 3 rounds     │  │
+│  │ tasks              │  │ corrections        │  │  └──────┬─────────────┘  │
+│  │ analyze (auto)     │  │                    │  │ ADVERSARIAL REVIEW      │  │
+│  │ complexity analysis│  │                    │  │                         │  │
+│  ├────────────────────┤  ├────────────────────┤  ├─────────────────────────┤  │
+│  │ DESIGN GATE D1-D10 │  │ BUILD GATE B1-B9   │  │ QA GATE Q1-Q8           │  │
+│  └────────────────────┘  └────────────────────┘  └─────────────────────────┘  │
+│                                                                              │
+│   Each gate returns PASS / PASS WITH CONDITIONS / BLOCK and writes a record  │
+│   to specs/{feature}/gates/. A blocked gate stops the next pipeline.         │
+│   (auto) = runs non-interactively, applying the recommended answer.          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+The classic step-by-step commands remain available and are what the phases call:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -341,6 +420,68 @@ SpecForge supports two main workflows:
 ```
 
 See [Workflow Guide](./docs/workflows.md) for detailed workflow documentation.
+
+### Skills
+
+`forge init` and `forge update` install SpecForge's skill library into your agent's skills directory
+(`.claude/skills/`, `.opencode/skills/`, and so on). Skills carry the methodology; commands are thin
+orchestrators that invoke them. Agents also load skills on their own when the work matches, so the
+guidance applies outside the slash commands too.
+
+**Method skills** - one per workflow discipline:
+
+`idea-shaping`, `spec-authoring`, `requirements-clarification`, `technical-planning`,
+`task-decomposition`, `implementation-execution`, `integration-validation`, `bug-diagnosis`,
+`artifact-analysis`, `quality-checklists`, `focused-change`, `feature-merge`, `codebase-learning`,
+`constitution-authoring`, `semantic-anchors`, `specforge-workflow`, `adversarial-test-planning`.
+
+**Adversarial review harness** - makes validations that can actually fail:
+
+| Skill | Role |
+| ----- | ---- |
+| `adversarial-review` | The harness: framing, lens routing, finding schema, severity rubric, verdicts |
+| `finding-verification` | Falsification pass - every finding must survive an attempt to prove it wrong |
+| `quality-gates` | Entry and exit criteria for each phase, blocking rules, gate records |
+| `adversarial-test-planning` | Scenario coverage designed to break the feature, not confirm it |
+
+**Domain lenses** - each one a red-team perspective with probes, attack moves, a severity
+calibration and its known false positives:
+
+| Lens | Attacks |
+| ---- | ------- |
+| `lens-requirements` | Ambiguity, untestability, missing scenarios, hidden assumptions |
+| `lens-architecture` | Boundary violations, hidden coupling, unjustified novelty, one-way doors |
+| `lens-domain-model` | Illegal states, unenforced invariants, aggregate boundaries, language drift |
+| `lens-api-contract` | Drift, breaking changes, weak error semantics, missing idempotency |
+| `lens-data` | Migrations, integrity, unbounded queries, cache invalidation, retention |
+| `lens-security` | STRIDE, authn/authz, injection, secrets, exposure - with traced exploit paths |
+| `lens-privacy-compliance` | Personal data inventory, purpose, retention, deletion, third parties |
+| `lens-performance` | Growth functions, I/O in loops, unbounded input, budgets |
+| `lens-reliability` | Failure modes, timeouts, retries, partial failure, degraded modes |
+| `lens-concurrency` | Races, lost updates, deadlocks, ordering and idempotency assumptions |
+| `lens-observability` | Would we notice, how fast, and what would we look at next |
+| `lens-testing` | Weak oracles, mocked-away truth, mutation thinking, skipped tests |
+| `lens-accessibility` | WCAG 2.2 AA: keyboard, screen reader, contrast, focus, reflow, motion |
+| `lens-ux-content` | The five states, dead ends, destructive actions, error copy |
+| `lens-i18n` | Time zones, currency, unicode, pluralisation, locale assumptions |
+| `lens-operations` | Deploy, rollback, config, flags, runbooks, cost |
+| `lens-maintainability` | Fake implementations and stubs first, then smells and dead code |
+| `lens-supply-chain` | Dependencies, pinning, install-time code, licences, CI permissions |
+| `lens-llm-integration` | Prompt injection, tool authority, ungrounded output, cost bounds |
+
+Lenses are selected automatically from the artifact type and the risk signals present in the change
+(see the routing table in `adversarial-review/references/lens-registry.md`), or explicitly:
+
+```bash
+/specforge.harness --lens security,concurrency,data
+/specforge.harness --focus architecture, design patterns, security, performance
+```
+
+`--focus` accepts free text naming domains, in any language, and maps it to lenses - so it stands in
+for an agent's own built-in `/review` command without depending on one.
+
+Skills you edit locally are preserved across `forge update`: the CLI tracks what it installed and
+only refreshes files that are still unmodified.
 
 ### Environment Variables
 

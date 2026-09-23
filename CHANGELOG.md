@@ -7,6 +7,127 @@ All notable changes to the Forge CLI and templates are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-02
+
+### Added - Skills, Phase Workflow and Adversarial Review
+
+#### Skills are now the source of truth
+
+The methodology that used to live inside each command has moved into skills, installed into every
+agent's skills directory (`.claude/skills/`, `.opencode/skills/`, ...) by `forge init` and
+`forge update`. Commands are now thin orchestrators that invoke them.
+
+- **Method skills**: `specforge-workflow`, `idea-shaping`, `spec-authoring`,
+  `requirements-clarification`, `technical-planning`, `task-decomposition`,
+  `implementation-execution`, `integration-validation`, `bug-diagnosis`, `artifact-analysis`,
+  `quality-checklists`, `focused-change`, `feature-merge`, `codebase-learning`,
+  `constitution-authoring`, `semantic-anchors`
+- Skills are also model-invoked: agents load them when the work matches, outside the slash commands
+- Locally edited skill files are preserved across `forge update` via a content manifest
+  (`skills/.specforge-skills.json`)
+
+#### Macro pipeline commands
+
+Non-interactive pipelines that chain the individual commands, apply recommended defaults instead of
+stopping to ask, red-team their output, and gate before handing off.
+
+| Command | Pipeline |
+| ------- | -------- |
+| `/specforge.workflow` | design → build → qa, resuming from file state, stopping on BLOCK |
+| `/specforge.design` | specify → clarify (auto) → plan → adversarial review → checklists (auto) → tasks → analyze (auto) → complexity analysis |
+| `/specforge.build` | per phase: breakdown (if complex) → implement → adversarial pass; then review → corrections |
+| `/specforge.qa` | validate ⇄ fix loop (max 3 rounds, early exit on no progress) → adversarial release review |
+| `/specforge.harness` | The adversarial review harness on any target with any lens selection |
+
+- Each pipeline writes a gate record to `specs/{feature}/gates/` with a verdict of PASS,
+  PASS WITH CONDITIONS or BLOCK, and stops rather than feeding a broken artifact to the next stage
+- `/specforge.design` writes `complexity-analysis.md` classifying each task phase DIRECT or BREAKDOWN
+  and recording its lens exposure; `/specforge.build` consumes it
+- `/specforge.qa` writes `qa-report.md` with the validation rounds and remaining failures
+- The workflow resumes from file state, so it survives session loss
+
+#### Adversarial test plan
+
+`/specforge.build` now ends by writing `FEATURE_DIR/test-plan.md`, and `/specforge.qa` executes it
+instead of deriving scenarios from the spec at run time.
+
+- New skill `adversarial-test-planning`: ten coverage classes (happy path, boundary, invalid input,
+  permission, state, failure, concurrency, regression, data integrity, exploratory), derivation moves
+  that invert every MUST / NEVER / ONLY in the spec, and a scenario format with preconditions, exact
+  steps, an observable expected outcome and a "Fails if" clause
+- New command `/specforge.testplan` to produce or regenerate it standalone (`smoke`, `US2`, a class)
+- The plan is written at the **end** of build on purpose: `task-results/` deviations and gotchas are
+  the most productive source of scenarios, and they do not exist at design time
+- Scenarios that cannot run are marked `BLOCKED`; the plan carries an explicit Not Covered section
+- `/specforge.validate` gains a test-plan mode: execute by TP id in priority order, report blocked
+  scenarios as blocked, and let the plan's "Fails if" decide pass or fail
+- QA retry rounds re-run the failing scenarios plus every P1, since a fix can break what passed
+
+#### Final adversarial review at the end of build
+
+- `/specforge.build` gains a final full-branch adversarial pass after the corrections and before the
+  test plan, focused on architecture, design patterns, security and performance. It runs there rather
+  than at merge because its findings produce code changes, which must land before QA validates
+- Cheap fixes are applied in place; a blocking finding makes the build gate BLOCK and no test plan is
+  written for code already known to be wrong
+- `/specforge.merge` verifies both gate records cleared instead of repeating the review
+- `/specforge.harness` gains `--focus`, mapping free text naming domains (in any language) to lenses,
+  so it stands in for an agent's built-in `/review` command without depending on one
+
+#### Model selection
+
+- `/specforge.workflow` documents that a slash command runs under one model for its whole execution.
+  For a different model per pipeline, run `design`, `build` and `qa` separately - their handoffs chain
+  them - or set models on the specialised agents that `/specforge.implement` delegates to
+
+#### Non-interactive and scoped invocation contracts
+
+The sub-commands the pipelines call now document the arguments the pipelines send:
+
+- `clarify`: non-interactive mode applies its own recommended answer per question and records it as a
+  written assumption, so the adversarial review can attack it
+- `checklist`: non-interactive generation, consolidated multi-domain files, and remediation that fixes
+  the spec or plan rather than the checkbox
+- `analyze`: remediation mode, with two things it refuses to auto-resolve - a genuine conflict between
+  requirements, and a constitution conflict
+- `breakdown`: `phase {N}` processes that phase without the progression prompt
+- `implement`: `phase {N}` and `--auto-continue` scope execution and remove the prompts, not the rigor
+
+#### Adversarial review harness
+
+- `adversarial-review` - framing, lens routing, finding schema, severity rubric, anti-gaming rules
+- `finding-verification` - every finding must survive a falsification attempt before it is reported;
+  refuted findings are dropped, not demoted
+- `quality-gates` - entry and exit criteria per phase (D1-D10, B1-B9, Q1-Q8), blocking rules, records
+
+#### Domain lenses
+
+Nineteen review lenses, each with probes, attack moves, a severity calibration and its known false
+positives: `lens-requirements`, `lens-architecture`, `lens-domain-model`, `lens-api-contract`,
+`lens-data`, `lens-security`, `lens-privacy-compliance`, `lens-performance`, `lens-reliability`,
+`lens-concurrency`, `lens-observability`, `lens-testing`, `lens-accessibility`, `lens-ux-content`,
+`lens-i18n`, `lens-operations`, `lens-maintainability`, `lens-supply-chain`, `lens-llm-integration`.
+
+Lens selection is routed automatically by artifact type and risk signal
+(`adversarial-review/references/lens-registry.md`), or chosen explicitly with `--lens`.
+
+### Changed
+
+- All core commands (`specify`, `clarify`, `plan`, `tasks`, `implement`, `validate`, `analyze`,
+  `review`, `checklist`, `fix`, `idea`, `change`, `semantic-anchors`) rewritten as thin invokers that
+  declare their `skills:` and keep only the operational steps: script wiring, paths and report contracts
+- `merge`, `learn`, `breakdown` and `setup-constitution` now reference their skill; their operational
+  bodies are unchanged
+- `setup-skills` no longer regenerates skills that ship with SpecForge; it adds project-specific ones
+
+### Known Limitation
+
+- Release packaging (`.github/workflows/scripts/create-release-packages.sh`) installs commands but not
+  skills, and substitutes only `__AGENT__` rather than the full `__AGENT_*__` set. This affects the
+  GitHub-release download path only: `forge init --force-download`, and running from a source checkout
+  with no built wheel. The normal install is unaffected - `templates/` is force-included into the
+  wheel, so `forge init` builds from bundled templates and installs skills itself.
+
 ## [0.1.0] - 2026-02-08
 
 ### BREAKING CHANGE - Project Rebranding
