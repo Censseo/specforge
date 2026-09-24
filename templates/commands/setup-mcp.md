@@ -235,6 +235,22 @@ Enter service details or "done" to continue:
 
 ## Phase 4: Installation
 
+### Step 4.0: Guard the repository FIRST
+
+Do this **before** `npm install` or any browser download. The workspace is committed
+with `git add -A`, so anything these steps leave behind is pushed to the project repo.
+
+```bash
+for p in \
+  ".mcp/project-server/node_modules/" \
+  ".mcp/project-server/dist/" \
+  ".cache/" \
+  "core" \
+  "*.core"; do
+  grep -qxF "$p" .gitignore 2>/dev/null || echo "$p" >> .gitignore
+done
+```
+
 ### Step 4.1: Install Dependencies
 
 ```bash
@@ -249,9 +265,31 @@ cd .mcp/project-server && npm run build
 
 ### Step 4.3: Install Playwright (if browser testing)
 
+Browser automation needs a Chromium that can actually run **here**. Agent runtimes are
+frequently Alpine/musl and unprivileged, where Playwright's glibc-linked download cannot
+execute and `apk add` is refused. Probe first:
+
 ```bash
-cd .mcp/project-server && npx playwright install chromium
+cd .mcp/project-server
+npx playwright install chromium >/dev/null 2>&1 || true   # non-fatal: may be unobtainable
+if node -e "require('playwright').chromium.launch().then(b=>b.close()).then(()=>process.exit(0)).catch(()=>process.exit(1))" 2>/dev/null; then
+  echo "BROWSER_OK"
+else
+  echo "BROWSER_UNAVAILABLE"
+fi
 ```
+
+Only the launch decides. An install that "succeeds" while producing a binary this runtime cannot
+execute is the exact trap here — never treat the install's exit code as the answer.
+
+On `BROWSER_UNAVAILABLE`: record it in the MCP server README, leave the `browser_*` tools
+registered (they fail loudly at call time, which is the honest outcome), and **move on to
+Phase 5**.
+
+**Do NOT** try to obtain a browser by other means — no hand-extracting distro packages, no
+assembling a runtime from `.apk`/`.deb` archives, no `LD_LIBRARY_PATH` shimming. A browser
+absent from the image is an environment property, not a task to solve here; attempting it
+burns the whole action budget and leaves hundreds of megabytes of debris in the workspace.
 
 ---
 
@@ -297,14 +335,18 @@ Create or update `opencode.json` in **project root** (not in `.opencode/`):
 Check your agent's MCP documentation. Most follow a similar pattern to Claude Code.
 ```
 
-### Step 5.2: Add to .gitignore
+### Step 5.2: Re-check .gitignore
 
-Ensure `.mcp/project-server/node_modules/` and `.mcp/project-server/dist/` are ignored:
+Step 4.0 already added the entries. Confirm nothing large slipped in since, and add any
+path this run created that is not source:
 
 ```bash
-echo ".mcp/project-server/node_modules/" >> .gitignore
-echo ".mcp/project-server/dist/" >> .gitignore
+git status --short
+du -sh $(git status --short | awk '/^\?\?/{print $2}') 2>/dev/null | sort -rh | head
 ```
+
+Anything that is a download, a build artifact, a cache or a crash dump belongs in
+`.gitignore` — never in the commit.
 
 ---
 
@@ -316,10 +358,14 @@ echo ".mcp/project-server/dist/" >> .gitignore
 cd .mcp/project-server && npm run inspect
 ```
 
-Verify all tools are listed:
+Verify all tools are **listed** (registration, not execution):
 - Process tools: `start_service`, `stop_service`, etc.
 - Browser tools: `browser_open`, `browser_click`, etc.
 - API tools: `api_get`, `api_post`, etc.
+
+Listing is the acceptance criterion. Do **not** attempt to drive a real browser session
+here: when Step 4.3 reported `BROWSER_UNAVAILABLE`, the `browser_*` tools are expected to
+be present and non-functional, and that is a pass.
 
 ### Step 6.2: Test Service Start
 
